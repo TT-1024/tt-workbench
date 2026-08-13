@@ -58,6 +58,9 @@ TT.App = (function() {
     if (currentRoute === 'inspiration' && route !== 'inspiration') {
       if (TT.Inspiration.cleanup) TT.Inspiration.cleanup();
     }
+    if (currentRoute === 'conversation' && route !== 'conversation') {
+      if (TT.Conversation.cleanup) TT.Conversation.cleanup();
+    }
 
     currentRoute = route;
     updateActiveNav();
@@ -86,6 +89,9 @@ TT.App = (function() {
         break;
       case 'inspiration':
         TT.Inspiration.render(main);
+        break;
+      case 'conversation':
+        TT.Conversation.render(main);
         break;
       default:
         // Custom module

@@ -21,7 +21,8 @@ TT.Store = (function() {
         { id: 'podcast', name: '播客感悟记录', icon: 'mic', order: 3, locked: true },
         { id: 'food', name: '美食记录', icon: 'utensils', order: 4, locked: true },
         { id: 'album', name: '相册', icon: 'image', order: 5, locked: true },
-        { id: 'inspiration', name: '灵感', icon: 'lightbulb', order: 6, locked: true }
+        { id: 'inspiration', name: '灵感', icon: 'lightbulb', order: 6, locked: true },
+        { id: 'conversation', name: '谈话记录', icon: 'chat', order: 7, locked: true }
       ]
     },
     tasks: {
@@ -38,6 +39,7 @@ TT.Store = (function() {
     podcasts: [],
     album: [],
     inspirations: [],
+    conversations: [],
     food: {
       milktea: [],
       milkteaDates: [],
