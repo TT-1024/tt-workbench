@@ -501,7 +501,6 @@ TT.App = (function() {
    ============================================ */
 
 TT.Dashboard = (function() {
-  let fabElement = null;
   let hotCornerHint = null;
   let touchHandlers = null;
   let mouseHandler = null;
@@ -537,15 +536,6 @@ TT.Dashboard = (function() {
     if (TT.AINews && TT.AINews.showDailyPopup) {
       setTimeout(() => TT.AINews.showDailyPopup(), 600);
     }
-
-    // FAB - quick add inspiration
-    if (fabElement) fabElement.remove();
-    fabElement = document.createElement('button');
-    fabElement.className = 'fab';
-    fabElement.innerHTML = TT.Utils.icons.plus;
-    fabElement.title = '记录灵感';
-    fabElement.onclick = () => TT.Inspiration.editItem();
-    document.body.appendChild(fabElement);
 
     // Hot Corner - macOS-style trigger zone
     setupHotCorner();
@@ -672,10 +662,6 @@ TT.Dashboard = (function() {
   }
 
   function cleanup() {
-    if (fabElement) {
-      fabElement.remove();
-      fabElement = null;
-    }
     cleanupHotCorner();
   }
 
