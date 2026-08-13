@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TT工作台</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TT工作台">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=20260813b">
+</head>
+<body>
+  <!-- Animated gradient background orbs -->
+  <div class="bg-canvas">
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
+    <div class="bg-orb bg-orb-4"></div>
+  </div>
+
+  <!-- App container -->
+  <div id="app" class="app-container">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar glass">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <span class="logo-mark">TT</span>
+          <span class="logo-text">工作台</span>
+        </div>
+        <button id="sidebar-toggle" class="icon-btn sidebar-toggle-btn" title="收起侧边栏">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+      </div>
+      <nav id="sidebar-nav" class="sidebar-nav"></nav>
+      <div class="sidebar-footer">
+        <button id="add-module-btn" class="sidebar-footer-btn" title="新增目录">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span class="footer-btn-text">新增目录</span>
+        </button>
+        <div class="sidebar-data-btns">
+          <button id="export-data-btn" class="sidebar-footer-btn sidebar-footer-btn-sm" title="导出数据">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span class="footer-btn-text">导出数据</span>
+          </button>
+          <button id="import-data-btn" class="sidebar-footer-btn sidebar-footer-btn-sm" title="导入数据">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span class="footer-btn-text">导入数据</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Sidebar collapse toggle (for mobile) -->
+    <button id="mobile-menu-btn" class="mobile-menu-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+    </button>
+
+    <!-- Main content -->
+    <main id="main-content" class="main-content"></main>
+  </div>
+
+  <!-- Sidebar overlay for mobile -->
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+  <!-- Modal container -->
+  <div id="modal-container"></div>
+
+  <!-- Toast container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/idb.js?v=20260813b"></script>
+  <script src="js/store.js?v=20260813b"></script>
+  <script src="js/utils.js?v=20260813b"></script>
+  <script src="js/ainews.js?v=20260813b"></script>
+  <script src="js/app.js?v=20260813c"></script>
+  <script src="js/planning.js?v=20260813b"></script>
+  <script src="js/learning.js?v=20260813b"></script>
+  <script src="js/podcast.js?v=20260813b"></script>
+  <script src="js/food.js?v=20260813b"></script>
+  <script src="js/album.js?v=20260813b"></script>
+  <script src="js/inspiration.js?v=20260813b"></script>
+  <script>
+    // Register Service Worker for offline support
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(function(err) {
+        console.log('SW registration failed:', err);
+      });
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      TT.App.init();
+    });
+  </script>
+</body>
+</html>
