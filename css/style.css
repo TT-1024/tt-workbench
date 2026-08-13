@@ -2277,6 +2277,79 @@ body {
 }
 .fab svg { width: 26px; height: 26px; }
 
+/* ===== Hot Corner (macOS-style trigger zone) ===== */
+.hot-corner-hint {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 140px;
+  height: 140px;
+  pointer-events: none;
+  z-index: 9998;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  background: radial-gradient(circle at bottom right,
+    rgba(10, 132, 255, 0.15) 0%,
+    rgba(10, 132, 255, 0.05) 45%,
+    transparent 75%);
+}
+.hot-corner-hint.intro {
+  opacity: 0.5;
+  animation: hotCornerIntro 3.5s ease-in-out forwards;
+}
+.hot-corner-hint.active {
+  opacity: 1;
+  background: radial-gradient(circle at bottom right,
+    rgba(10, 132, 255, 0.4) 0%,
+    rgba(10, 132, 255, 0.18) 35%,
+    rgba(10, 132, 255, 0.06) 60%,
+    transparent 82%);
+  animation: hotCornerPulse 0.7s ease-in-out infinite;
+}
+.hot-corner-icon {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(10, 132, 255, 0.75);
+  filter: drop-shadow(0 1px 6px rgba(10, 132, 255, 0.4));
+}
+.hot-corner-icon svg { width: 24px; height: 24px; }
+.hot-corner-label {
+  position: absolute;
+  bottom: 52px;
+  right: 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(10, 132, 255, 0.9);
+  white-space: nowrap;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.4);
+  opacity: 0;
+  transition: opacity 0.3s ease 0.1s;
+  letter-spacing: 0.5px;
+}
+.hot-corner-hint.active .hot-corner-label { opacity: 1; }
+@keyframes hotCornerPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+@keyframes hotCornerIntro {
+  0% { opacity: 0; }
+  15% { opacity: 0.5; }
+  75% { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+@media (max-width: 768px) {
+  .hot-corner-hint { width: 110px; height: 110px; }
+  .hot-corner-icon { bottom: 10px; right: 10px; }
+  .hot-corner-icon svg { width: 20px; height: 20px; }
+  .hot-corner-label { bottom: 42px; right: 12px; font-size: 10px; }
+}
+
 /* ===== Food Journal Module ===== */
 .food-tabs {
   display: flex;

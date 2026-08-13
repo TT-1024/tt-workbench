@@ -502,6 +502,10 @@ TT.App = (function() {
 
 TT.Dashboard = (function() {
   let fabElement = null;
+  let hotCornerHint = null;
+  let touchHandlers = null;
+  let mouseHandler = null;
+  let isActive = false;
 
   function render(container) {
     const greeting = TT.Utils.getGreeting();
@@ -534,7 +538,7 @@ TT.Dashboard = (function() {
       setTimeout(() => TT.AINews.showDailyPopup(), 600);
     }
 
-    // FAB - same as podcast module
+    // FAB - quick add inspiration
     if (fabElement) fabElement.remove();
     fabElement = document.createElement('button');
     fabElement.className = 'fab';
@@ -542,6 +546,129 @@ TT.Dashboard = (function() {
     fabElement.title = '记录灵感';
     fabElement.onclick = () => TT.Inspiration.editItem();
     document.body.appendChild(fabElement);
+
+    // Hot Corner - macOS-style trigger zone
+    setupHotCorner();
+  }
+
+  // ===== Hot Corner (macOS 触发角) =====
+  function setupHotCorner() {
+    cleanupHotCorner();
+    isActive = true;
+
+    const CORNER_SIZE = 90;       // detection zone (px from each edge)
+    const SWIPE_THRESHOLD = 30;   // min swipe distance to trigger (px)
+    const HOVER_DELAY = 450;      // desktop mouse hover delay (ms)
+
+    const main = document.getElementById('main-content');
+    let touchStartX = 0, touchStartY = 0;
+    let inCornerZone = false;
+    let triggered = false;
+    let mouseTimer = null;
+
+    // Visual hint element
+    hotCornerHint = document.createElement('div');
+    hotCornerHint.className = 'hot-corner-hint intro';
+    hotCornerHint.innerHTML =
+      '<div class="hot-corner-icon">' + TT.Utils.icons.lightbulb + '</div>' +
+      '<div class="hot-corner-label">滑动记录灵感</div>';
+    document.body.appendChild(hotCornerHint);
+
+    // Remove intro class after animation
+    setTimeout(() => {
+      if (hotCornerHint) hotCornerHint.classList.remove('intro');
+    }, 3600);
+
+    // --- Touch gesture (mobile) ---
+    function onTouchStart(e) {
+      if (!isActive) return;
+      const touch = e.touches[0];
+      const winW = window.innerWidth;
+      const winH = window.innerHeight;
+      if (touch.clientX > winW - CORNER_SIZE && touch.clientY > winH - CORNER_SIZE) {
+        inCornerZone = true;
+        triggered = false;
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        if (hotCornerHint) hotCornerHint.classList.add('active');
+      }
+    }
+
+    function onTouchMove(e) {
+      if (!inCornerZone || triggered) return;
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - touchStartX;
+      const deltaY = touch.clientY - touchStartY;
+      // Swipe toward center = left and/or up
+      if (deltaX < -SWIPE_THRESHOLD || deltaY < -SWIPE_THRESHOLD) {
+        triggered = true;
+        inCornerZone = false;
+        if (hotCornerHint) hotCornerHint.classList.remove('active');
+        TT.Inspiration.editItem();
+      }
+    }
+
+    function onTouchEnd() {
+      inCornerZone = false;
+      if (hotCornerHint) hotCornerHint.classList.remove('active');
+    }
+
+    main.addEventListener('touchstart', onTouchStart, { passive: true });
+    main.addEventListener('touchmove', onTouchMove, { passive: true });
+    main.addEventListener('touchend', onTouchEnd, { passive: true });
+
+    // --- Mouse hot corner (desktop) ---
+    function onMouseMove(e) {
+      if (!isActive) return;
+      // Skip if modal is already open
+      if (document.querySelector('.modal-overlay')) {
+        if (mouseTimer) { clearTimeout(mouseTimer); mouseTimer = null; }
+        if (hotCornerHint) hotCornerHint.classList.remove('active');
+        return;
+      }
+      const winW = window.innerWidth;
+      const winH = window.innerHeight;
+
+      if (e.clientX > winW - CORNER_SIZE && e.clientY > winH - CORNER_SIZE) {
+        if (!mouseTimer) {
+          if (hotCornerHint) hotCornerHint.classList.add('active');
+          mouseTimer = setTimeout(() => {
+            TT.Inspiration.editItem();
+            mouseTimer = null;
+          }, HOVER_DELAY);
+        }
+      } else {
+        if (mouseTimer) {
+          clearTimeout(mouseTimer);
+          mouseTimer = null;
+        }
+        if (hotCornerHint) hotCornerHint.classList.remove('active');
+      }
+    }
+
+    main.addEventListener('mousemove', onMouseMove);
+
+    touchHandlers = { start: onTouchStart, move: onTouchMove, end: onTouchEnd };
+    mouseHandler = onMouseMove;
+  }
+
+  function cleanupHotCorner() {
+    isActive = false;
+    const main = document.getElementById('main-content');
+    if (touchHandlers) {
+      main.removeEventListener('touchstart', touchHandlers.start);
+      main.removeEventListener('touchmove', touchHandlers.move);
+      main.removeEventListener('touchend', touchHandlers.end);
+      touchHandlers = null;
+    }
+    if (mouseHandler) {
+      main.removeEventListener('mousemove', mouseHandler);
+      mouseHandler = null;
+    }
+    if (hotCornerHint) {
+      hotCornerHint.remove();
+      hotCornerHint = null;
+    }
   }
 
   function cleanup() {
@@ -549,6 +676,7 @@ TT.Dashboard = (function() {
       fabElement.remove();
       fabElement = null;
     }
+    cleanupHotCorner();
   }
 
   return { render, cleanup };
