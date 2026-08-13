@@ -1,5 +1,5 @@
 /* TT工作台 - Service Worker for offline support */
-const CACHE_NAME = 'tt-workbench-v1';
+const CACHE_NAME = 'tt-workbench-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -8,6 +8,7 @@ const ASSETS = [
   './js/idb.js',
   './js/store.js',
   './js/utils.js',
+  './js/cloudsync.js',
   './js/ainews.js',
   './js/app.js',
   './js/planning.js',

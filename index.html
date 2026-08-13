@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20260813b">
+  <link rel="stylesheet" href="css/style.css?v=20260813d">
 </head>
 <body>
   <!-- Animated gradient background orbs -->
@@ -40,6 +40,10 @@
       </div>
       <nav id="sidebar-nav" class="sidebar-nav"></nav>
       <div class="sidebar-footer">
+        <button id="cloud-sync-btn" class="sidebar-footer-btn" title="云端同步设置">
+          <span id="cloud-sync-indicator" style="display:inline-flex;align-items:center;width:16px;height:16px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--text-tertiary);"></span></span>
+          <span class="footer-btn-text">云端同步</span>
+        </button>
         <button id="add-module-btn" class="sidebar-footer-btn" title="新增目录">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           <span class="footer-btn-text">新增目录</span>
@@ -76,17 +80,18 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Scripts -->
-  <script src="js/idb.js?v=20260813b"></script>
-  <script src="js/store.js?v=20260813b"></script>
-  <script src="js/utils.js?v=20260813b"></script>
-  <script src="js/ainews.js?v=20260813b"></script>
-  <script src="js/app.js?v=20260813c"></script>
-  <script src="js/planning.js?v=20260813b"></script>
-  <script src="js/learning.js?v=20260813b"></script>
-  <script src="js/podcast.js?v=20260813b"></script>
-  <script src="js/food.js?v=20260813b"></script>
-  <script src="js/album.js?v=20260813b"></script>
-  <script src="js/inspiration.js?v=20260813b"></script>
+  <script src="js/idb.js?v=20260813d"></script>
+  <script src="js/store.js?v=20260813d"></script>
+  <script src="js/utils.js?v=20260813d"></script>
+  <script src="js/cloudsync.js?v=20260813d"></script>
+  <script src="js/ainews.js?v=20260813d"></script>
+  <script src="js/app.js?v=20260813d"></script>
+  <script src="js/planning.js?v=20260813d"></script>
+  <script src="js/learning.js?v=20260813d"></script>
+  <script src="js/podcast.js?v=20260813d"></script>
+  <script src="js/food.js?v=20260813d"></script>
+  <script src="js/album.js?v=20260813d"></script>
+  <script src="js/inspiration.js?v=20260813d"></script>
   <script>
     // Register Service Worker for offline support
     if ('serviceWorker' in navigator) {

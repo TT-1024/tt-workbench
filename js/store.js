@@ -156,6 +156,10 @@ TT.Store = (function() {
     if (usingIDB) {
       try {
         await TT.IDB.set(IDB_KEY, jsonStr);
+        // Trigger cloud sync (debounced, non-blocking)
+        if (TT.CloudSync && TT.CloudSync.schedule) {
+          TT.CloudSync.schedule();
+        }
         return;
       } catch (e) {
         console.error('IDB save failed, trying localStorage:', e);
@@ -165,6 +169,9 @@ TT.Store = (function() {
     // localStorage fallback
     try {
       localStorage.setItem(STORAGE_KEY, jsonStr);
+      if (TT.CloudSync && TT.CloudSync.schedule) {
+        TT.CloudSync.schedule();
+      }
     } catch (e) {
       console.error('Failed to save:', e);
       if (e.name === 'QuotaExceededError') {

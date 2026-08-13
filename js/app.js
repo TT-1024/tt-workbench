@@ -196,6 +196,13 @@ TT.App = (function() {
     // Data export/import buttons
     document.getElementById('export-data-btn').onclick = exportDataToFile;
     document.getElementById('import-data-btn').onclick = importDataFromFile;
+
+    // Cloud sync button
+    const syncBtn = document.getElementById('cloud-sync-btn');
+    if (syncBtn) {
+      syncBtn.onclick = () => TT.CloudSync.showTokenSettings();
+      TT.CloudSync.init();
+    }
   }
 
   function setupMobileMenu() {
