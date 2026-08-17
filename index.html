@@ -97,7 +97,16 @@
   <script>
     // Register Service Worker for offline support
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(function(err) {
+      let swRefreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        if (swRefreshing || sessionStorage.getItem('tt-sw-refreshed')) return;
+        swRefreshing = true;
+        sessionStorage.setItem('tt-sw-refreshed', '1');
+        location.reload();
+      });
+      navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(function(registration) {
+        return registration.update();
+      }).catch(function(err) {
         console.log('SW registration failed:', err);
       });
     }
