@@ -1,5 +1,5 @@
 /* TT工作台 - Service Worker for offline support */
-const CACHE_NAME = 'tt-workbench-v19-finedining-layout';
+const CACHE_NAME = 'tt-workbench-v20-finedining-square';
 const ASSETS = [
   './',
   './index.html',
