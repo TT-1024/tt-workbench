@@ -166,16 +166,10 @@ TT.App = (function() {
 
   function setupSidebarEvents() {
     const sidebar = document.getElementById('sidebar');
-    const toggleBtn = document.getElementById('sidebar-toggle');
-
-    // Restore collapsed state
+    // The desktop sidebar is always fully expanded. Clear legacy collapsed state.
     const data = TT.Store.getData();
-    if (data.sidebar.collapsed) sidebar.classList.add('collapsed');
-
-    toggleBtn.onclick = () => {
-      sidebar.classList.toggle('collapsed');
-      TT.Store.setSidebarCollapsed(sidebar.classList.contains('collapsed'));
-    };
+    sidebar.classList.remove('collapsed');
+    if (data.sidebar) data.sidebar.collapsed = false;
 
     // Add module button
     document.getElementById('add-module-btn').onclick = addModule;
