@@ -1,5 +1,5 @@
 /* TT工作台 - Service Worker for offline support */
-const CACHE_NAME = 'tt-workbench-v10-auto-update';
+const CACHE_NAME = 'tt-workbench-v11-category-contrast';
 const ASSETS = [
   './',
   './index.html',

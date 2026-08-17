@@ -6,12 +6,13 @@
 window.TT = window.TT || {};
 
 TT.Podcast = (function() {
-  let currentCategory = 'all';
+  let currentCategory = '';
   let searchQuery = '';
   let fabElement = null;
 
   function render(container) {
     const categories = TT.Store.getData().podcastCategories;
+    if (!categories.includes(currentCategory)) currentCategory = categories[0] || '';
 
     container.innerHTML = `
       <div class="page-container">
@@ -28,9 +29,8 @@ TT.Podcast = (function() {
             <input type="text" id="podcast-search" placeholder="搜索感悟..." value="${searchQuery}">
           </div>
           <div class="category-chips" id="podcast-categories">
-            <button class="category-chip ${currentCategory === 'all' ? 'active' : ''}" data-cat="all">全部</button>
             ${categories.map(c => `
-              <button class="category-chip ${currentCategory === c ? 'active' : ''}" data-cat="${c}">${c}</button>
+              <button class="category-chip ${currentCategory === c ? 'active' : ''}" data-cat="${TT.Utils.escapeHtml(c)}">${TT.Utils.escapeHtml(c)}</button>
             `).join('')}
             <button class="category-chip" id="add-category-btn" style="color:var(--text-tertiary);border-style:dashed;">+ 分类</button>
           </div>
@@ -79,9 +79,7 @@ TT.Podcast = (function() {
     let notes = TT.Store.getCollection('podcasts');
 
     // Filter by category
-    if (currentCategory !== 'all') {
-      notes = notes.filter(n => n.category === currentCategory);
-    }
+    notes = notes.filter(n => n.category === currentCategory);
 
     // Filter by search
     if (searchQuery) {
@@ -270,7 +268,7 @@ TT.Podcast = (function() {
           });
           if (!ok) return;
           TT.Store.removePodcastCategory(name);
-          if (currentCategory === name) currentCategory = 'all';
+          if (currentCategory === name) currentCategory = TT.Store.getData().podcastCategories[0] || '';
           renderCategoryList();
           TT.Utils.toast('分类已删除');
         };
