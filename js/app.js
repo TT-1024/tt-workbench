@@ -196,12 +196,14 @@ TT.App = (function() {
       sidebar.classList.add('show');
       overlay.classList.add('show');
       menuBtn.setAttribute('aria-expanded', 'true');
+      menuBtn.setAttribute('aria-label', '关闭侧边栏');
     };
 
     const closeSidebar = () => {
       sidebar.classList.remove('show');
       overlay.classList.remove('show');
       menuBtn.setAttribute('aria-expanded', 'false');
+      menuBtn.setAttribute('aria-label', '打开侧边栏');
     };
 
     menuBtn.onclick = openSidebar;

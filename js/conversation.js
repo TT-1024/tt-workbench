@@ -8,6 +8,7 @@ TT.Conversation = (function() {
   let fabElement = null;
   let searchQuery = '';
   let currentCategory = '';
+  const expandedItems = new Set();
 
   function render(container) {
     const categories = TT.Store.getConversationCategories();
@@ -114,29 +115,43 @@ TT.Conversation = (function() {
       return;
     }
 
-    list.innerHTML = items.map((item, i) => `
-      <div class="glass-card conversation-card stagger-item" style="animation-delay:${i * 0.05}s" data-id="${item.id}">
-        <div class="conversation-card-header">
-          <div class="conversation-card-date">
-            ${TT.Utils.icons.clock} ${item.date ? TT.Utils.formatDate(item.date) : '未填写'}
+    list.innerHTML = items.map((item, i) => {
+      const isExpanded = expandedItems.has(item.id);
+      return `
+      <div class="glass-card conversation-card stagger-item ${isExpanded ? 'is-expanded' : ''}" style="animation-delay:${i * 0.05}s" data-id="${item.id}">
+        <div class="conversation-card-summary">
+          <div class="conversation-card-person" title="谈话对象">
+            ${TT.Utils.icons.chat}
+            <span>${TT.Utils.escapeHtml(item.person || '未填写')}</span>
           </div>
-          <div class="podcast-card-actions">
-            <button class="task-action-btn" onclick="event.stopPropagation();TT.Conversation.editItem('${item.id}')">${TT.Utils.icons.edit}</button>
-            <button class="task-action-btn delete" onclick="event.stopPropagation();TT.Conversation.deleteItem('${item.id}')">${TT.Utils.icons.trash}</button>
+          <div class="conversation-card-date" title="日期">
+            ${TT.Utils.icons.clock}<span>${item.date ? TT.Utils.formatDate(item.date) : '未填写'}</span>
           </div>
+          <div class="conversation-card-topic" title="主题">${TT.Utils.escapeHtml(item.topic || '无主题')}</div>
+          <button class="conversation-card-toggle" type="button" aria-expanded="${isExpanded}" aria-label="${isExpanded ? '收起' : '展开'}谈话记录">
+            ${TT.Utils.icons.chevronDown}
+          </button>
         </div>
-        <div class="conversation-card-person">
-          ${TT.Utils.icons.chat}
-          <span>${TT.Utils.escapeHtml(item.person || '未填写')}</span>
+        <div class="conversation-card-details" ${isExpanded ? '' : 'hidden'}>
+          <div class="conversation-card-actions">
+            <button class="task-action-btn conversation-edit-btn" type="button" title="编辑记录">${TT.Utils.icons.edit}</button>
+            <button class="task-action-btn delete conversation-delete-btn" type="button" title="删除记录">${TT.Utils.icons.trash}</button>
+          </div>
+          ${item.content ? `<div class="conversation-card-content">${TT.Utils.escapeHtml(item.content).replace(/\n/g, '<br>')}</div>` : '<div class="conversation-card-content conversation-card-content-empty">暂无具体内容</div>'}
         </div>
-        <div class="conversation-card-category">${TT.Utils.escapeHtml(item.category || '大生赛')}</div>
-        <div class="conversation-card-topic">${TT.Utils.escapeHtml(item.topic || '无主题')}</div>
-        ${item.content ? `<div class="conversation-card-content">${TT.Utils.escapeHtml(item.content).replace(/\n/g, '<br>')}</div>` : ''}
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     list.querySelectorAll('.conversation-card').forEach(card => {
-      card.onclick = () => TT.Conversation.editItem(card.dataset.id);
+      const id = card.dataset.id;
+      card.querySelector('.conversation-card-toggle').onclick = () => {
+        if (expandedItems.has(id)) expandedItems.delete(id);
+        else expandedItems.add(id);
+        renderList();
+      };
+      card.querySelector('.conversation-edit-btn')?.addEventListener('click', () => openEditor(id));
+      card.querySelector('.conversation-delete-btn')?.addEventListener('click', () => deleteItem(id));
     });
   }
 
