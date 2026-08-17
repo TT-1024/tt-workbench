@@ -196,15 +196,50 @@ TT.App = (function() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
 
-    menuBtn.onclick = () => {
+    const openSidebar = () => {
       sidebar.classList.add('show');
       overlay.classList.add('show');
+      menuBtn.setAttribute('aria-expanded', 'true');
     };
 
-    overlay.onclick = () => {
+    const closeSidebar = () => {
       sidebar.classList.remove('show');
       overlay.classList.remove('show');
+      menuBtn.setAttribute('aria-expanded', 'false');
     };
+
+    menuBtn.onclick = openSidebar;
+    overlay.onclick = closeSidebar;
+
+    // iOS-style edge swipe: start at the left edge and swipe right.
+    const EDGE_ZONE = 28;
+    const OPEN_THRESHOLD = 56;
+    let edgePointer = null;
+
+    document.addEventListener('pointerdown', (e) => {
+      if (!window.matchMedia('(max-width: 768px)').matches || sidebar.classList.contains('show')) return;
+      if (document.querySelector('.modal-backdrop, .album-gallery-overlay, .ainews-popup-overlay')) return;
+      if (e.isPrimary && e.clientX <= EDGE_ZONE) {
+        edgePointer = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      }
+    });
+
+    document.addEventListener('pointermove', (e) => {
+      if (!edgePointer || e.pointerId !== edgePointer.id) return;
+      const deltaX = e.clientX - edgePointer.x;
+      const deltaY = e.clientY - edgePointer.y;
+      if (Math.abs(deltaY) > Math.abs(deltaX) || deltaX < -8) edgePointer = null;
+    });
+
+    document.addEventListener('pointerup', (e) => {
+      if (!edgePointer || e.pointerId !== edgePointer.id) return;
+      const deltaX = e.clientX - edgePointer.x;
+      const deltaY = e.clientY - edgePointer.y;
+      if (deltaX >= OPEN_THRESHOLD && deltaX > Math.abs(deltaY) * 1.25) openSidebar();
+      edgePointer = null;
+    });
+
+    document.addEventListener('pointercancel', () => { edgePointer = null; });
   }
 
   function addModule() {

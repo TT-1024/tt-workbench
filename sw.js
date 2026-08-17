@@ -1,5 +1,5 @@
 /* TT工作台 - Service Worker for offline support */
-const CACHE_NAME = 'tt-workbench-v11-category-contrast';
+const CACHE_NAME = 'tt-workbench-v13-edge-swipe';
 const ASSETS = [
   './',
   './index.html',
