@@ -14,27 +14,8 @@ TT.App = (function() {
     main.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:60vh;color:var(--text-tertiary);font-size:14px;">正在加载工作台...</div>';
 
     await TT.Store.load();
-
-    // Auto-restore from backup if no real data exists
-    const data = TT.Store.getData();
-    const hasData = (data.podcasts && data.podcasts.length > 0) ||
-                    (data.food && data.food.finedining && data.food.finedining.length > 0) ||
-                    (data.food && data.food.milkteaDates && data.food.milkteaDates.length > 0) ||
-                    (data.album && data.album.length > 0) ||
-                    (data.tasks && (data.tasks.daily.length > 0 || data.tasks.weekly.length > 0 || data.tasks.habits.length > 0));
-
-    if (!hasData) {
-      try {
-        const resp = await fetch('data-backup.json?v=20260810');
-        if (resp.ok) {
-          const jsonStr = await resp.text();
-          await TT.Store.importData(jsonStr);
-          console.log('Auto-restored from data-backup.json');
-        }
-      } catch (e) {
-        console.log('No backup file found, continuing with defaults');
-      }
-    }
+    // Establish a safe cloud baseline before rendering any device data.
+    await TT.CloudSync.init();
 
     sidebarModules = TT.Store.getSidebarModules();
     renderSidebar();
@@ -207,7 +188,6 @@ TT.App = (function() {
     const syncBtn = document.getElementById('cloud-sync-btn');
     if (syncBtn) {
       syncBtn.onclick = () => TT.CloudSync.showTokenSettings();
-      TT.CloudSync.init();
     }
   }
 

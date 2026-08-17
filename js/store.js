@@ -152,14 +152,15 @@ TT.Store = (function() {
     if (changed) save();
   }
 
-  async function save() {
+  async function save(options) {
+    const skipCloudSync = options && options.skipCloudSync;
     const jsonStr = JSON.stringify(data);
 
     if (usingIDB) {
       try {
         await TT.IDB.set(IDB_KEY, jsonStr);
         // Trigger cloud sync (debounced, non-blocking)
-        if (TT.CloudSync && TT.CloudSync.schedule) {
+        if (!skipCloudSync && TT.CloudSync && TT.CloudSync.schedule) {
           TT.CloudSync.schedule();
         }
         return;
@@ -171,7 +172,7 @@ TT.Store = (function() {
     // localStorage fallback
     try {
       localStorage.setItem(STORAGE_KEY, jsonStr);
-      if (TT.CloudSync && TT.CloudSync.schedule) {
+      if (!skipCloudSync && TT.CloudSync && TT.CloudSync.schedule) {
         TT.CloudSync.schedule();
       }
     } catch (e) {
@@ -335,7 +336,7 @@ TT.Store = (function() {
     return JSON.stringify(getData(), null, 2);
   }
 
-  async function importData(jsonStr) {
+  async function importData(jsonStr, options) {
     try {
       const imported = JSON.parse(jsonStr);
       data = deepMerge(defaultData, imported);
@@ -350,7 +351,7 @@ TT.Store = (function() {
         // Re-sort by order
         data.sidebar.modules.sort((a, b) => (a.order || 0) - (b.order || 0));
       }
-      await save(); // Ensure data is fully saved before returning
+      await save(options); // Ensure data is fully saved before returning
       return true;
     } catch (e) {
       return false;
