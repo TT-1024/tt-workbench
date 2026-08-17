@@ -8,6 +8,9 @@ TT.Inspiration = (function() {
   let fabElement = null;
   let searchQuery = '';
   let currentTag = 'all';
+  const NOTE_WIDTH = 240;
+  const NOTE_HEIGHT = 210;
+  const NOTE_COLORS = ['yellow', 'pink', 'blue', 'green', 'white'];
 
   function render(container) {
     const tags = getAllTags();
@@ -38,7 +41,9 @@ TT.Inspiration = (function() {
           </div>
         </div>
 
-        <div class="podcast-grid" id="inspiration-grid"></div>
+        <div class="inspiration-board-shell" id="inspiration-board-shell">
+          <div class="inspiration-board" id="inspiration-grid"></div>
+        </div>
       </div>
     `;
 
@@ -104,22 +109,34 @@ TT.Inspiration = (function() {
       );
     }
 
-    // Sort by date desc
+    // Keep a predictable order for legacy notes that do not have a saved position yet.
     items = items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     if (items.length === 0) {
       grid.innerHTML = `
-        <div class="empty-state" style="grid-column:1/-1;padding:80px 20px;">
+        <div class="inspiration-board-empty">
           <div class="empty-state-icon">${TT.Utils.icons.lightbulb}</div>
           <div class="empty-state-text" style="font-size:14px;margin-bottom:4px;">还没有灵感记录</div>
-          <div class="empty-state-text">点击右下角 + 快速记录</div>
+          <div class="empty-state-text">点击 +，在画布上贴下第一张便签</div>
         </div>
       `;
       return;
     }
 
-    grid.innerHTML = items.map((item, i) => `
-      <div class="glass-card inspiration-card stagger-item" style="animation-delay:${i * 0.05}s" data-id="${item.id}">
+    const positions = items.map((item, i) => getBoardPosition(item, i));
+    const boardWidth = Math.max(1200, ...positions.map(p => p.x + NOTE_WIDTH + 80));
+    const boardHeight = Math.max(760, ...positions.map(p => p.y + NOTE_HEIGHT + 100));
+    grid.style.width = `${boardWidth}px`;
+    grid.style.height = `${boardHeight}px`;
+
+    grid.innerHTML = items.map((item, i) => {
+      const pos = positions[i];
+      const color = NOTE_COLORS.includes(item.color) ? item.color : NOTE_COLORS[i % 4];
+      return `
+      <div class="inspiration-card inspiration-note inspiration-note-${color}" style="left:${pos.x}px;top:${pos.y}px;z-index:${Number(item.boardZ) || i + 1}" data-id="${item.id}">
+        <button class="inspiration-drag-handle" type="button" aria-label="拖动便签" title="拖动便签">
+          <span></span><span></span><span></span>
+        </button>
         <div class="podcast-card-actions">
           <button class="task-action-btn" onclick="event.stopPropagation();TT.Inspiration.editItem('${item.id}')">${TT.Utils.icons.edit}</button>
           <button class="task-action-btn delete" onclick="event.stopPropagation();TT.Inspiration.deleteItem('${item.id}')">${TT.Utils.icons.trash}</button>
@@ -135,10 +152,60 @@ TT.Inspiration = (function() {
           ${TT.Utils.icons.clock} ${TT.Utils.formatDate(item.createdAt)}
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     grid.querySelectorAll('.inspiration-card').forEach(card => {
       card.onclick = () => TT.Inspiration.editItem(card.dataset.id);
+      setupNoteDrag(card, grid);
+    });
+  }
+
+  function getBoardPosition(item, index) {
+    if (Number.isFinite(Number(item.boardX)) && Number.isFinite(Number(item.boardY))) {
+      return { x: Number(item.boardX), y: Number(item.boardY) };
+    }
+    const col = index % 4;
+    const row = Math.floor(index / 4);
+    return { x: 32 + col * 270, y: 32 + row * 240 };
+  }
+
+  function setupNoteDrag(card, board) {
+    const handle = card.querySelector('.inspiration-drag-handle');
+    handle.addEventListener('click', e => e.stopPropagation());
+    handle.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const initialX = parseFloat(card.style.left) || 0;
+      const initialY = parseFloat(card.style.top) || 0;
+      const topZ = Math.max(1, ...Array.from(board.querySelectorAll('.inspiration-note')).map(n => Number(n.style.zIndex) || 1)) + 1;
+      card.style.zIndex = topZ;
+      card.classList.add('is-dragging');
+      handle.setPointerCapture(e.pointerId);
+
+      const move = event => {
+        const x = Math.max(12, Math.min(board.clientWidth - card.offsetWidth - 12, initialX + event.clientX - startX));
+        const y = Math.max(12, Math.min(board.clientHeight - card.offsetHeight - 12, initialY + event.clientY - startY));
+        card.style.left = `${x}px`;
+        card.style.top = `${y}px`;
+      };
+      const end = event => {
+        handle.removeEventListener('pointermove', move);
+        handle.removeEventListener('pointerup', end);
+        handle.removeEventListener('pointercancel', end);
+        card.classList.remove('is-dragging');
+        TT.Store.updateItem('inspirations', card.dataset.id, {
+          boardX: Math.round(parseFloat(card.style.left) || 0),
+          boardY: Math.round(parseFloat(card.style.top) || 0),
+          boardZ: topZ
+        });
+        if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
+      };
+      handle.addEventListener('pointermove', move);
+      handle.addEventListener('pointerup', end);
+      handle.addEventListener('pointercancel', end);
     });
   }
 
@@ -159,6 +226,17 @@ TT.Inspiration = (function() {
       <div class="form-group">
         <label class="form-label">标签（逗号分隔，可选）</label>
         <input type="text" class="form-input" id="inspiration-tags-input" value="${item && item.tags ? item.tags.map(t => TT.Utils.escapeHtml(t)).join(', ') : ''}" maxlength="200">
+      </div>
+      <div class="form-group">
+        <label class="form-label">便签颜色</label>
+        <div class="inspiration-color-picker">
+          ${NOTE_COLORS.map((color, index) => `
+            <label class="inspiration-color-option inspiration-note-${color}" title="选择颜色">
+              <input type="radio" name="inspiration-color" value="${color}" ${(item ? (item.color || 'yellow') === color : index === 0) ? 'checked' : ''}>
+              <span></span>
+            </label>
+          `).join('')}
+        </div>
       </div>
     `;
 
@@ -205,6 +283,7 @@ TT.Inspiration = (function() {
         const content = document.getElementById('inspiration-content').value.trim();
         const tagsStr = document.getElementById('inspiration-tags-input').value.trim();
         const tags = tagsStr ? tagsStr.split(/[,，]/).map(t => t.trim()).filter(Boolean) : [];
+        const color = body.querySelector('input[name="inspiration-color"]:checked')?.value || 'yellow';
 
         if (!title && !content) {
           TT.Utils.toast('请输入灵感内容', 'error');
@@ -212,10 +291,16 @@ TT.Inspiration = (function() {
         }
 
         if (item) {
-          TT.Store.updateItem('inspirations', id, { title, content, tags });
+          TT.Store.updateItem('inspirations', id, { title, content, tags, color });
           TT.Utils.toast('已保存');
         } else {
-          TT.Store.addItem('inspirations', { title, content, tags });
+          const shell = document.getElementById('inspiration-board-shell');
+          const offset = TT.Store.getCollection('inspirations').length % 5;
+          TT.Store.addItem('inspirations', {
+            title, content, tags, color,
+            boardX: Math.max(24, (shell?.scrollLeft || 0) + 36 + offset * 24),
+            boardY: Math.max(24, (shell?.scrollTop || 0) + 36 + offset * 24)
+          });
           TT.Utils.toast('灵感已记录');
         }
         m.close();
