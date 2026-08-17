@@ -1,5 +1,5 @@
 /* TT工作台 - Service Worker for offline support */
-const CACHE_NAME = 'tt-workbench-v7-safe-sync';
+const CACHE_NAME = 'tt-workbench-v8-mobile-sync';
 const ASSETS = [
   './',
   './index.html',
@@ -53,28 +53,35 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;
 
-  event.respondWith(
-    caches.match(req).then((cached) => {
-      if (cached) {
-        // Return cached version and update in background
-        fetch(req).then((res) => {
-          if (res.ok) {
-            caches.open(CACHE_NAME).then(cache => cache.put(req, res));
-          }
-        }).catch(() => {});
-        return cached;
-      }
-      // Not in cache, try network
-      return fetch(req).then((res) => {
-        if (res.ok && url.origin === location.origin) {
+  const networkFirst = req.mode === 'navigate' ||
+    url.pathname.endsWith('/index.html') ||
+    url.pathname.endsWith('/data-backup.json') ||
+    url.pathname.endsWith('/js/cloudsync.js') ||
+    url.pathname.endsWith('/js/store.js') ||
+    url.pathname.endsWith('/js/app.js');
+
+  if (networkFirst) {
+    event.respondWith(
+      fetch(req).then((res) => {
+        if (res.ok) {
           const clone = res.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
         }
         return res;
-      }).catch(() => {
-        // Network failed, try to return index.html as fallback
-        return caches.match('./index.html');
-      });
-    })
+      }).catch(async () => {
+        return (await caches.match(req)) || (await caches.match('./index.html'));
+      })
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(req).then((cached) => cached || fetch(req).then((res) => {
+      if (res.ok) {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
+      }
+      return res;
+    }))
   );
 });

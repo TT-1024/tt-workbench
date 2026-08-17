@@ -81,9 +81,25 @@ TT.CloudSync = (function() {
 
   async function fetchRemote() {
     const token = await getToken();
+    // Read-only devices use the same-origin Pages copy. This avoids GitHub API
+    // limits and large-file/CORS differences in mobile Safari.
+    if (!token) {
+      const pagesUrl = new URL('data-backup.json', location.href);
+      pagesUrl.searchParams.set('sync', Date.now().toString());
+      const pagesResp = await fetch(pagesUrl.toString(), { cache: 'no-store' });
+      if (!pagesResp.ok) throw new Error(`Cloud backup download failed: ${pagesResp.status}`);
+      const pagesJson = await pagesResp.text();
+      return {
+        json: pagesJson,
+        hash: await hashJson(pagesJson),
+        count: countRecords(JSON.parse(pagesJson)),
+        sha: null
+      };
+    }
+
     const url = `https://api.github.com/repos/${GH_CONFIG.owner}/${GH_CONFIG.repo}/contents/${GH_CONFIG.path}?ref=${GH_CONFIG.branch}&t=${Date.now()}`;
     const headers = { 'Accept': 'application/vnd.github.v3+json' };
-    if (token) headers.Authorization = `Bearer ${token}`;
+    headers.Authorization = `Bearer ${token}`;
     const resp = await fetch(url, { headers, cache: 'no-store' });
     if (!resp.ok) throw new Error(`GitHub API GET failed: ${resp.status}`);
     const fileData = await resp.json();
