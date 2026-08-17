@@ -7,7 +7,7 @@ window.TT = window.TT || {};
 TT.Album = (function() {
   let fabElement = null;
   let multiImages = [];
-  let currentFilter = 'all';
+  let currentFilter = '';
   let selectedCategory = '';
 
   function render(container) {
@@ -51,19 +51,20 @@ TT.Album = (function() {
 
     const categories = TT.Store.getAlbumCategories();
     const items = TT.Store.getCollection('album');
+    if (!categories.includes(currentFilter)) currentFilter = categories[0] || '';
 
     // Count per category
-    const counts = { all: items.length };
+    const counts = {};
     categories.forEach(cat => { counts[cat] = items.filter(i => i.category === cat).length; });
 
     bar.innerHTML = `
-      <button class="album-filter-chip ${currentFilter === 'all' ? 'active' : ''}" data-filter="all">
-        全部 <span class="album-filter-count">${counts.all}</span>
-      </button>
       ${categories.map(cat => `
-        <button class="album-filter-chip ${currentFilter === cat ? 'active' : ''}" data-filter="${TT.Utils.escapeHtml(cat)}">
-          ${TT.Utils.escapeHtml(cat)} <span class="album-filter-count">${counts[cat] || 0}</span>
-        </button>
+        <span class="category-filter-unit">
+          <button class="album-filter-chip ${currentFilter === cat ? 'active' : ''}" data-filter="${TT.Utils.escapeHtml(cat)}">
+            ${TT.Utils.escapeHtml(cat)} <span class="album-filter-count">${counts[cat] || 0}</span>
+          </button>
+          <button class="category-delete-btn" data-delete-category="${TT.Utils.escapeHtml(cat)}" title="删除分类">${TT.Utils.icons.close}</button>
+        </span>
       `).join('')}
       <button class="album-filter-chip album-filter-add" id="album-add-category">
         ${TT.Utils.icons.plus}
@@ -75,6 +76,13 @@ TT.Album = (function() {
         currentFilter = chip.dataset.filter;
         renderFilterBar();
         renderGrid();
+      };
+    });
+
+    bar.querySelectorAll('[data-delete-category]').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        promptDeleteCategory(btn.dataset.deleteCategory);
       };
     });
 
@@ -91,6 +99,20 @@ TT.Album = (function() {
     TT.Store.addAlbumCategory(name);
     TT.Utils.toast('分类已添加');
     renderFilterBar();
+    renderGrid();
+  }
+
+  async function promptDeleteCategory(name) {
+    const used = TT.Store.getCollection('album').filter(i => i.category === name).length;
+    const ok = await TT.Utils.confirm({
+      title: '删除相册分类',
+      text: used ? `该分类有 ${used} 条回忆，删除后将自动转移到其他分类。` : `确定删除「${name}」分类？`
+    });
+    if (!ok) return;
+    currentFilter = TT.Store.removeAlbumCategory(name);
+    TT.Utils.toast('分类已删除');
+    renderFilterBar();
+    renderGrid();
   }
 
   function renderGrid() {
@@ -98,10 +120,7 @@ TT.Album = (function() {
     if (!grid) return;
 
     const items = TT.Store.getCollection('album');
-    let filtered = items;
-    if (currentFilter !== 'all') {
-      filtered = items.filter(i => i.category === currentFilter);
-    }
+    const filtered = items.filter(i => i.category === currentFilter);
 
     const sorted = [...filtered].sort((a, b) => {
       const da = new Date(a.date || a.createdAt || 0);
@@ -113,7 +132,7 @@ TT.Album = (function() {
       grid.innerHTML = `
         <div class="empty-state" style="grid-column:1/-1;padding:80px 20px;">
           <div class="empty-state-icon">${TT.Utils.icons.image}</div>
-          <div class="empty-state-text" style="font-size:14px;margin-bottom:4px;">${currentFilter === 'all' ? '还没有回忆' : '该分类下暂无回忆'}</div>
+          <div class="empty-state-text" style="font-size:14px;margin-bottom:4px;">该分类下暂无回忆</div>
           <div class="empty-state-text">点击右上角「新建回忆」记录与朋友的美好时光</div>
         </div>
       `;
@@ -350,14 +369,15 @@ TT.Album = (function() {
 
     // Category chip selection
     const chipsContainer = m.el.querySelector('#album-category-chips');
-    chipsContainer.querySelectorAll('.album-category-chip[data-cat]').forEach(chip => {
+    const bindCategoryChip = (chip) => {
       chip.onclick = (e) => {
         e.stopPropagation();
         selectedCategory = chip.dataset.cat;
         chipsContainer.querySelectorAll('.album-category-chip').forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
       };
-    });
+    };
+    chipsContainer.querySelectorAll('.album-category-chip[data-cat]').forEach(bindCategoryChip);
 
     // Add custom category from editor
     m.el.querySelector('#album-category-add').onclick = async (e) => {
@@ -368,33 +388,19 @@ TT.Album = (function() {
         placeholder: '如：6人朋友、同事'
       });
       if (!name) return;
+      if (TT.Store.getAlbumCategories().includes(name)) {
+        TT.Utils.toast('分类已存在', 'error');
+        return;
+      }
       TT.Store.addAlbumCategory(name);
       selectedCategory = name;
-      // Re-render chips
-      const cats = TT.Store.getAlbumCategories();
-      chipsContainer.innerHTML = `
-        ${cats.map(cat => `
-          <button class="album-category-chip ${selectedCategory === cat ? 'active' : ''}" data-cat="${TT.Utils.escapeHtml(cat)}">
-            ${TT.Utils.escapeHtml(cat)}
-          </button>
-        `).join('')}
-        <button class="album-category-chip album-category-add" id="album-category-add">
-          ${TT.Utils.icons.plus} 新增
-        </button>
-      `;
-      // Re-bind events
-      chipsContainer.querySelectorAll('.album-category-chip[data-cat]').forEach(ch => {
-        ch.onclick = (ev) => {
-          ev.stopPropagation();
-          selectedCategory = ch.dataset.cat;
-          chipsContainer.querySelectorAll('.album-category-chip').forEach(c => c.classList.remove('active'));
-          ch.classList.add('active');
-        };
-      });
-      m.el.querySelector('#album-category-add').onclick = (ev) => {
-        ev.stopPropagation();
-        ev.currentTarget.click();
-      };
+      chipsContainer.querySelectorAll('.album-category-chip').forEach(c => c.classList.remove('active'));
+      const newChip = document.createElement('button');
+      newChip.className = 'album-category-chip active';
+      newChip.dataset.cat = name;
+      newChip.textContent = name;
+      bindCategoryChip(newChip);
+      chipsContainer.insertBefore(newChip, m.el.querySelector('#album-category-add'));
       TT.Utils.toast('分类已添加并选中');
     };
 

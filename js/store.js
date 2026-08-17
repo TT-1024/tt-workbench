@@ -47,6 +47,7 @@ TT.Store = (function() {
     },
     podcastCategories: ['创业', '做人', '成长', '商业', '科技'],
     albumCategories: ['tt&ll', '恶搞之家', '家人'],
+    conversationCategories: ['大生赛', '论文'],
     customModules: {},
     notes: {}
   };
@@ -64,6 +65,7 @@ TT.Store = (function() {
         data = deepMerge(defaultData, data);
         ensureDefaultModules();
         migrateAlbumCategories();
+        migrateConversationCategories();
         return data;
       }
     } catch (e) {
@@ -78,6 +80,7 @@ TT.Store = (function() {
         data = deepMerge(defaultData, data);
         ensureDefaultModules();
         migrateAlbumCategories();
+        migrateConversationCategories();
         // Migrate to IndexedDB if available
         if (usingIDB) {
           await TT.IDB.set(IDB_KEY, JSON.stringify(data));
@@ -150,6 +153,18 @@ TT.Store = (function() {
     }
 
     if (changed) save();
+  }
+
+  function migrateConversationCategories() {
+    if (!Array.isArray(data.conversationCategories) || data.conversationCategories.length === 0) {
+      data.conversationCategories = ['大生赛', '论文'];
+    }
+    (data.conversations || []).forEach(item => {
+      if (!item.category || item.category === '未分类') item.category = '大生赛';
+      if (!data.conversationCategories.includes(item.category)) {
+        data.conversationCategories.push(item.category);
+      }
+    });
   }
 
   async function save(options) {
@@ -308,6 +323,11 @@ TT.Store = (function() {
   function removePodcastCategory(name) {
     const d = getData();
     d.podcastCategories = d.podcastCategories.filter(c => c !== name);
+    if (d.podcastCategories.length === 0) d.podcastCategories.push('未分类');
+    const fallback = d.podcastCategories[0];
+    (d.podcasts || []).forEach(item => {
+      if (item.category === name) item.category = fallback;
+    });
     save();
   }
 
@@ -323,6 +343,43 @@ TT.Store = (function() {
       d.albumCategories.push(name);
       save();
     }
+  }
+
+  function removeAlbumCategory(name) {
+    const d = getData();
+    d.albumCategories = getAlbumCategories().filter(c => c !== name);
+    if (d.albumCategories.length === 0) d.albumCategories.push('未分类');
+    const fallback = d.albumCategories[0];
+    (d.album || []).forEach(item => {
+      if (item.category === name) item.category = fallback;
+    });
+    save();
+    return fallback;
+  }
+
+  function getConversationCategories() {
+    return getData().conversationCategories || ['大生赛', '论文'];
+  }
+
+  function addConversationCategory(name) {
+    const d = getData();
+    if (!d.conversationCategories) d.conversationCategories = ['大生赛', '论文'];
+    if (!d.conversationCategories.includes(name)) {
+      d.conversationCategories.push(name);
+      save();
+    }
+  }
+
+  function removeConversationCategory(name) {
+    const d = getData();
+    d.conversationCategories = getConversationCategories().filter(c => c !== name);
+    if (d.conversationCategories.length === 0) d.conversationCategories.push('大生赛');
+    const fallback = d.conversationCategories[0];
+    (d.conversations || []).forEach(item => {
+      if ((item.category || '大生赛') === name) item.category = fallback;
+    });
+    save();
+    return fallback;
   }
 
   // Reset
@@ -351,6 +408,7 @@ TT.Store = (function() {
         // Re-sort by order
         data.sidebar.modules.sort((a, b) => (a.order || 0) - (b.order || 0));
       }
+      migrateConversationCategories();
       await save(options); // Ensure data is fully saved before returning
       return true;
     } catch (e) {
@@ -377,6 +435,10 @@ TT.Store = (function() {
     removePodcastCategory,
     getAlbumCategories,
     addAlbumCategory,
+    removeAlbumCategory,
+    getConversationCategories,
+    addConversationCategory,
+    removeConversationCategory,
     reset,
     exportData,
     importData

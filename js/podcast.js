@@ -227,20 +227,12 @@ TT.Podcast = (function() {
   }
 
   function openCategoryEditor() {
-    const categories = TT.Store.getData().podcastCategories;
     const body = TT.Utils.createEl('div');
 
     body.innerHTML = `
       <div class="form-group">
         <label class="form-label">现有分类</label>
-        <div id="cat-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
-          ${categories.map(c => `
-            <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--glass-bg-active);border-radius:var(--radius-full);font-size:13px;">
-              ${TT.Utils.escapeHtml(c)}
-              <button type="button" onclick="this.parentElement.remove();TT.Store.removePodcastCategory('${c}');" style="border:none;background:transparent;cursor:pointer;color:var(--text-tertiary);display:flex;">${TT.Utils.icons.close}</button>
-            </span>
-          `).join('')}
-        </div>
+        <div id="cat-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;"></div>
       </div>
       <div class="form-group">
         <label class="form-label">添加新分类</label>
@@ -259,21 +251,44 @@ TT.Podcast = (function() {
       cancelText: '完成'
     });
 
+    const renderCategoryList = () => {
+      const list = m.el.querySelector('#cat-list');
+      const categories = TT.Store.getData().podcastCategories;
+      list.innerHTML = categories.map(c => `
+        <span class="category-manager-item">
+          ${TT.Utils.escapeHtml(c)}
+          <button type="button" data-delete-podcast-category="${TT.Utils.escapeHtml(c)}" title="删除分类">${TT.Utils.icons.close}</button>
+        </span>
+      `).join('');
+      list.querySelectorAll('[data-delete-podcast-category]').forEach(btn => {
+        btn.onclick = async () => {
+          const name = btn.dataset.deletePodcastCategory;
+          const used = TT.Store.getCollection('podcasts').filter(i => i.category === name).length;
+          const ok = await TT.Utils.confirm({
+            title: '删除播客分类',
+            text: used ? `该分类有 ${used} 条记录，删除后将自动转移到其他分类。` : `确定删除「${name}」分类？`
+          });
+          if (!ok) return;
+          TT.Store.removePodcastCategory(name);
+          if (currentCategory === name) currentCategory = 'all';
+          renderCategoryList();
+          TT.Utils.toast('分类已删除');
+        };
+      });
+    };
+
     const addCat = () => {
       const name = document.getElementById('new-cat-input').value.trim();
       if (!name) return;
+      const categories = TT.Store.getData().podcastCategories;
       if (categories.includes(name)) { TT.Utils.toast('分类已存在', 'error'); return; }
       TT.Store.addPodcastCategory(name);
-      categories.push(name);
-      const span = document.createElement('span');
-      span.style.cssText = 'display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--glass-bg-active);border-radius:var(--radius-full);font-size:13px;';
-      span.innerHTML = `${TT.Utils.escapeHtml(name)} <button type="button" style="border:none;background:transparent;cursor:pointer;color:var(--text-tertiary);display:flex;">${TT.Utils.icons.close}</button>`;
-      span.querySelector('button').onclick = () => { span.remove(); TT.Store.removePodcastCategory(name); };
-      document.getElementById('cat-list').appendChild(span);
+      renderCategoryList();
       document.getElementById('new-cat-input').value = '';
       TT.Utils.toast('分类已添加');
     };
 
+    renderCategoryList();
     m.el.querySelector('#add-cat-confirm').onclick = addCat;
     m.el.querySelector('#new-cat-input').onkeydown = (e) => { if (e.key === 'Enter') addCat(); };
   }

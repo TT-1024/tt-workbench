@@ -7,8 +7,11 @@ window.TT = window.TT || {};
 TT.Conversation = (function() {
   let fabElement = null;
   let searchQuery = '';
+  let currentCategory = '';
 
   function render(container) {
+    const categories = TT.Store.getConversationCategories();
+    if (!categories.includes(currentCategory)) currentCategory = categories[0] || '';
     container.innerHTML = `
       <div class="page-container">
         <div class="page-header">
@@ -30,6 +33,18 @@ TT.Conversation = (function() {
           </div>
         </div>
 
+        <div class="album-filter-bar" id="conversation-category-bar">
+          ${categories.map(cat => `
+            <span class="category-filter-unit">
+              <button class="album-filter-chip ${currentCategory === cat ? 'active' : ''}" data-conversation-category="${TT.Utils.escapeHtml(cat)}">
+                ${TT.Utils.escapeHtml(cat)}
+              </button>
+              <button class="category-delete-btn" data-delete-conversation-category="${TT.Utils.escapeHtml(cat)}" title="删除分类">${TT.Utils.icons.close}</button>
+            </span>
+          `).join('')}
+          <button class="album-filter-chip album-filter-add" id="conversation-add-category" title="新增分类">${TT.Utils.icons.plus}</button>
+        </div>
+
         <div class="conversation-list" id="conversation-list"></div>
       </div>
     `;
@@ -39,6 +54,20 @@ TT.Conversation = (function() {
       searchQuery = searchInput.value.trim();
       renderList();
     }, 200);
+
+    container.querySelectorAll('[data-conversation-category]').forEach(btn => {
+      btn.onclick = () => {
+        currentCategory = btn.dataset.conversationCategory;
+        render(container);
+      };
+    });
+    container.querySelectorAll('[data-delete-conversation-category]').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        promptDeleteCategory(btn.dataset.deleteConversationCategory, container);
+      };
+    });
+    document.getElementById('conversation-add-category').onclick = () => promptAddCategory(container);
 
     document.getElementById('conversation-add-btn').onclick = () => openEditor();
 
@@ -59,6 +88,7 @@ TT.Conversation = (function() {
     if (!list) return;
 
     let items = TT.Store.getCollection('conversations');
+    items = items.filter(item => (item.category || '大生赛') === currentCategory);
 
     // Filter by search
     if (searchQuery) {
@@ -99,6 +129,7 @@ TT.Conversation = (function() {
           ${TT.Utils.icons.chat}
           <span>${TT.Utils.escapeHtml(item.person || '未填写')}</span>
         </div>
+        <div class="conversation-card-category">${TT.Utils.escapeHtml(item.category || '大生赛')}</div>
         <div class="conversation-card-topic">${TT.Utils.escapeHtml(item.topic || '无主题')}</div>
         ${item.content ? `<div class="conversation-card-content">${TT.Utils.escapeHtml(item.content).replace(/\n/g, '<br>')}</div>` : ''}
       </div>
@@ -112,6 +143,8 @@ TT.Conversation = (function() {
   function openEditor(id) {
     const items = TT.Store.getCollection('conversations');
     const item = id ? items.find(n => n.id === id) : null;
+    const categories = TT.Store.getConversationCategories();
+    const selectedCategory = item ? (item.category || '大生赛') : (currentCategory || categories[0]);
 
     const today = new Date();
     const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -126,6 +159,15 @@ TT.Conversation = (function() {
         <div class="form-group" style="flex:2;min-width:160px;">
           <label class="form-label">和谁谈</label>
           <input type="text" class="form-input" id="conversation-person" value="${item ? TT.Utils.escapeHtml(item.person) : ''}" placeholder="谈话对象" maxlength="50">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">分类</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select class="form-select" id="conversation-category" style="flex:1;">
+            ${categories.map(cat => `<option value="${TT.Utils.escapeHtml(cat)}" ${selectedCategory === cat ? 'selected' : ''}>${TT.Utils.escapeHtml(cat)}</option>`).join('')}
+          </select>
+          <button class="btn" type="button" id="conversation-new-category">+ 新分类</button>
         </div>
       </div>
       <div class="form-group">
@@ -181,6 +223,7 @@ TT.Conversation = (function() {
         const person = document.getElementById('conversation-person').value.trim();
         const topic = document.getElementById('conversation-topic').value.trim();
         const content = document.getElementById('conversation-content').value.trim();
+        const category = document.getElementById('conversation-category').value;
 
         if (!person && !topic && !content) {
           TT.Utils.toast('请至少填写一项内容', 'error');
@@ -188,10 +231,10 @@ TT.Conversation = (function() {
         }
 
         if (item) {
-          TT.Store.updateItem('conversations', id, { date, person, topic, content });
+          TT.Store.updateItem('conversations', id, { date, person, topic, content, category });
           TT.Utils.toast('已保存');
         } else {
-          TT.Store.addItem('conversations', { date, person, topic, content });
+          TT.Store.addItem('conversations', { date, person, topic, content, category });
           TT.Utils.toast('记录已保存');
         }
         m.close();
@@ -201,6 +244,27 @@ TT.Conversation = (function() {
     footer.appendChild(rightGroup);
 
     m.el.appendChild(footer);
+
+    m.el.querySelector('#conversation-new-category').onclick = async () => {
+      const name = await TT.Utils.showInput({
+        title: '新增谈话分类',
+        text: '输入新的分类名称',
+        placeholder: '如：家人、朋友、工作'
+      });
+      if (!name) return;
+      if (TT.Store.getConversationCategories().includes(name)) {
+        TT.Utils.toast('分类已存在', 'error');
+        return;
+      }
+      TT.Store.addConversationCategory(name);
+      const select = m.el.querySelector('#conversation-category');
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = name;
+      option.selected = true;
+      select.appendChild(option);
+      TT.Utils.toast('分类已添加');
+    };
 
     // Auto-focus person for new items
     if (!item) {
@@ -218,6 +282,35 @@ TT.Conversation = (function() {
       TT.Utils.toast('已删除');
       renderList();
     }
+  }
+
+  async function promptAddCategory(container) {
+    const name = await TT.Utils.showInput({
+      title: '新增谈话分类',
+      text: '输入新的分类名称',
+      placeholder: '如：家人、朋友、工作'
+    });
+    if (!name) return;
+    if (TT.Store.getConversationCategories().includes(name)) {
+      TT.Utils.toast('分类已存在', 'error');
+      return;
+    }
+    TT.Store.addConversationCategory(name);
+    currentCategory = name;
+    TT.Utils.toast('分类已添加');
+    render(container);
+  }
+
+  async function promptDeleteCategory(name, container) {
+    const used = TT.Store.getCollection('conversations').filter(i => (i.category || '大生赛') === name).length;
+    const ok = await TT.Utils.confirm({
+      title: '删除谈话分类',
+      text: used ? `该分类有 ${used} 条记录，删除后将自动转移到其他分类。` : `确定删除「${name}」分类？`
+    });
+    if (!ok) return;
+    currentCategory = TT.Store.removeConversationCategory(name);
+    TT.Utils.toast('分类已删除');
+    render(container);
   }
 
   function cleanup() {

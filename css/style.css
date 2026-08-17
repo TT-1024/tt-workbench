@@ -2866,6 +2866,67 @@ body {
 }
 .album-filter-add svg { width: 14px; height: 14px; }
 
+.category-filter-unit {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding-right: 4px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-full);
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+}
+.category-filter-unit .album-filter-chip {
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+.category-delete-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.category-delete-btn:hover { color: var(--accent-red); background: rgba(255,69,58,.1); }
+.category-delete-btn svg { width: 13px; height: 13px; }
+.category-manager-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px 7px 14px;
+  background: var(--glass-bg-active);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--radius-full);
+  font-size: 13px;
+}
+.category-manager-item button {
+  border: 0;
+  background: transparent;
+  color: var(--text-tertiary);
+  display: inline-flex;
+  cursor: pointer;
+}
+.category-manager-item button:hover { color: var(--accent-red); }
+.category-manager-item button svg { width: 14px; height: 14px; }
+.conversation-card-category {
+  display: inline-flex;
+  margin: 2px 0 10px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: var(--cat-blue-bg);
+  color: var(--accent-blue);
+  font-size: 11px;
+  font-weight: 650;
+}
+
 /* ===== Album Category Chips (Editor) ===== */
 .album-category-chips {
   display: flex;
