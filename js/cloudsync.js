@@ -79,21 +79,33 @@ TT.CloudSync = (function() {
     return { json, hash: await hashJson(json), count: countRecords(JSON.parse(json)) };
   }
 
-  async function fetchRemote() {
-    const token = await getToken();
+  async function fetchRemote(options) {
+    options = options || {};
+    const [token, state] = await Promise.all([getToken(), getState()]);
     // Read-only devices use the same-origin Pages copy. This avoids GitHub API
     // limits and large-file/CORS differences in mobile Safari.
     if (!token) {
       const pagesUrl = new URL('data-backup.json', location.href);
       pagesUrl.searchParams.set('sync', Date.now().toString());
+      if (!options.forceContent) {
+        const headResp = await fetch(pagesUrl.toString(), { method: 'HEAD', cache: 'no-store' });
+        if (headResp.ok) {
+          const version = headResp.headers.get('etag') || headResp.headers.get('last-modified');
+          if (version && state.lastRemoteVersion === version) {
+            return { unchanged: true, version, sha: null, hash: state.lastRemoteHash };
+          }
+        }
+      }
       const pagesResp = await fetch(pagesUrl.toString(), { cache: 'no-store' });
       if (!pagesResp.ok) throw new Error(`Cloud backup download failed: ${pagesResp.status}`);
       const pagesJson = await pagesResp.text();
+      const version = pagesResp.headers.get('etag') || pagesResp.headers.get('last-modified');
       return {
         json: pagesJson,
         hash: await hashJson(pagesJson),
         count: countRecords(JSON.parse(pagesJson)),
-        sha: null
+        sha: null,
+        version
       };
     }
 
@@ -103,6 +115,9 @@ TT.CloudSync = (function() {
     const resp = await fetch(url, { headers, cache: 'no-store' });
     if (!resp.ok) throw new Error(`GitHub API GET failed: ${resp.status}`);
     const fileData = await resp.json();
+    if (!options.forceContent && fileData.sha && state.lastRemoteSha === fileData.sha) {
+      return { unchanged: true, version: fileData.sha, sha: fileData.sha, hash: state.lastRemoteHash };
+    }
     let json;
     if (fileData.content) {
       json = decodeURIComponent(escape(atob(fileData.content.replace(/\n/g, ''))));
@@ -121,7 +136,8 @@ TT.CloudSync = (function() {
       json,
       hash: await hashJson(json),
       count: countRecords(JSON.parse(json)),
-      sha: fileData.sha
+      sha: fileData.sha,
+      version: fileData.sha
     };
   }
 
@@ -134,6 +150,7 @@ TT.CloudSync = (function() {
       lastLocalHash: appliedLocal.hash,
       lastRemoteHash: remote.hash,
       lastRemoteSha: remote.sha,
+      lastRemoteVersion: remote.version || remote.sha,
       lastPullAt: new Date().toISOString()
     });
     lastSyncTime = new Date();
@@ -163,16 +180,35 @@ TT.CloudSync = (function() {
     updateStatusUI();
 
     try {
-      const [remote, local, state, token] = await Promise.all([
-        fetchRemote(), localSnapshot(), getState(), getToken()
-      ]);
+      const [remote, state, token] = await Promise.all([fetchRemote(), getState(), getToken()]);
+
+      if (remote.unchanged && !token) {
+        syncStatus = 'success';
+        statusDetail = '云端无更新';
+        updateStatusUI();
+        return { action: 'same' };
+      }
+
+      const local = await localSnapshot();
+      if (remote.unchanged) {
+        const baselineLocal = state.lastLocalHash || state.lastSyncedHash;
+        if (baselineLocal && local.hash !== baselineLocal) {
+          schedule(300);
+          return { action: 'local-newer' };
+        }
+        syncStatus = 'success';
+        statusDetail = '已是最新版本';
+        updateStatusUI();
+        return { action: 'same' };
+      }
 
       if (remote.hash === local.hash) {
         await setState({
           lastSyncedHash: local.hash,
           lastLocalHash: local.hash,
           lastRemoteHash: remote.hash,
-          lastRemoteSha: remote.sha
+          lastRemoteSha: remote.sha,
+          lastRemoteVersion: remote.version || remote.sha
         });
         syncStatus = 'success';
         statusDetail = '已是最新版本';
@@ -200,7 +236,8 @@ TT.CloudSync = (function() {
             lastSyncedHash: local.hash,
             lastLocalHash: local.hash,
             lastRemoteHash: remote.hash,
-            lastRemoteSha: remote.sha
+            lastRemoteSha: remote.sha,
+            lastRemoteVersion: remote.version || remote.sha
           });
           if (token) schedule(300);
           else {
@@ -271,14 +308,17 @@ TT.CloudSync = (function() {
       updateStatusUI();
 
       try {
-        const [remote, local, state] = await Promise.all([fetchRemote(), localSnapshot(), getState()]);
+        const [remote, local, state] = await Promise.all([
+          fetchRemote({ forceContent: true }), localSnapshot(), getState()
+        ]);
 
         if (local.hash === remote.hash) {
           await setState({
             lastSyncedHash: local.hash,
             lastLocalHash: local.hash,
             lastRemoteHash: remote.hash,
-            lastRemoteSha: remote.sha
+            lastRemoteSha: remote.sha,
+            lastRemoteVersion: remote.version || remote.sha
           });
           syncStatus = 'success';
           statusDetail = '已同步';
@@ -324,6 +364,7 @@ TT.CloudSync = (function() {
           lastLocalHash: local.hash,
           lastRemoteHash: local.hash,
           lastRemoteSha: result.content && result.content.sha,
+          lastRemoteVersion: result.content && result.content.sha,
           lastPushAt: new Date().toISOString()
         });
         syncStatus = 'success';
@@ -347,7 +388,7 @@ TT.CloudSync = (function() {
 
   async function pull() {
     try {
-      const remote = await fetchRemote();
+      const remote = await fetchRemote({ forceContent: true });
       return await applyRemote(remote, false);
     } catch (e) {
       console.error('[CloudSync] Pull failed:', e);

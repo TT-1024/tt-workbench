@@ -1,5 +1,5 @@
 /* TT工作台 - Service Worker for offline support */
-const CACHE_NAME = 'tt-workbench-v14-fixed-sidebar';
+const CACHE_NAME = 'tt-workbench-v15-fast-start';
 const ASSETS = [
   './',
   './index.html',

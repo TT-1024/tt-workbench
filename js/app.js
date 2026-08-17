@@ -14,14 +14,16 @@ TT.App = (function() {
     main.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:60vh;color:var(--text-tertiary);font-size:14px;">正在加载工作台...</div>';
 
     await TT.Store.load();
-    // Establish a safe cloud baseline before rendering any device data.
-    await TT.CloudSync.init();
 
     sidebarModules = TT.Store.getSidebarModules();
     renderSidebar();
     setupSidebarEvents();
     setupMobileMenu();
     navigate('dashboard');
+    if (window.performance && performance.mark) performance.mark('tt-local-rendered');
+
+    // Render local data immediately; cloud version checks run in the background.
+    TT.CloudSync.init().catch(err => console.warn('Background sync init failed:', err));
   }
 
   // ===== Router =====
