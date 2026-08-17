@@ -233,9 +233,9 @@ TT.Food = (function() {
     const mainImage = images.length > 0 ? images[0] : null;
 
     return `
-      <div class="glass-card food-card stagger-item" style="animation-delay:${i * 0.05}s" data-id="${item.id}">
+      <div class="glass-card food-card fine-dining-card stagger-item" style="animation-delay:${i * 0.05}s" data-id="${item.id}">
         <div class="food-card-image">
-          ${mainImage ? `<img src="${mainImage}" alt="">` : `
+          ${mainImage ? `<img src="${mainImage}" alt="${TT.Utils.escapeHtml(item.restaurant || 'Fine Dining')}" loading="lazy">` : `
             <div class="food-card-image-placeholder">${TT.Utils.icons.utensils}</div>
           `}
           ${images.length > 1 ? `<div class="food-card-photo-count">${images.length}</div>` : ''}
