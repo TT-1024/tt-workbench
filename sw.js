@@ -1,5 +1,5 @@
 /* TT工作台 - Service Worker for offline support */
-const CACHE_NAME = 'tt-workbench-v21-inspiration-board';
+const CACHE_NAME = 'tt-workbench-v23-modal-vertical';
 const ASSETS = [
   './',
   './index.html',
@@ -58,7 +58,9 @@ self.addEventListener('fetch', (event) => {
     url.pathname.endsWith('/data-backup.json') ||
     url.pathname.endsWith('/js/cloudsync.js') ||
     url.pathname.endsWith('/js/store.js') ||
-    url.pathname.endsWith('/js/app.js');
+    url.pathname.endsWith('/js/app.js') ||
+    url.pathname.endsWith('/js/ainews.js') ||
+    url.pathname.endsWith('/css/style.css');
 
   if (networkFirst) {
     event.respondWith(

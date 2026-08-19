@@ -990,6 +990,9 @@ body {
   justify-content: center;
   padding: 20px;
   animation: modalFadeIn 0.25s var(--ease-out);
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
 }
 
 @keyframes modalFadeIn {
@@ -1008,6 +1011,9 @@ body {
   max-width: 520px;
   max-height: 90vh;
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   animation: modalSlideIn 0.35s var(--ease-spring);
 }
 
@@ -1048,7 +1054,15 @@ body {
 }
 .modal-close svg { width: 20px; height: 20px; }
 
-.modal-body { padding: 20px 24px; }
+.modal-body {
+  width: 100%;
+  max-width: 100%;
+  padding: 20px 24px;
+  overflow-x: hidden;
+}
+.modal-body > *,
+.modal .form-row,
+.modal .form-group { max-width: 100%; min-width: 0; }
 .modal-footer {
   display: flex;
   justify-content: flex-end;
@@ -1728,9 +1742,10 @@ body {
 
 .ainews-popup-content {
   flex: 1;
-  overflow-y: auto;
-  padding: 20px 24px;
+  overflow: hidden;
+  padding: 20px 24px 10px;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 .ainews-popup-content::-webkit-scrollbar { width: 4px; }
 .ainews-popup-content::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
@@ -1748,12 +1763,68 @@ body {
 .ainews-popup-cardtime svg { width: 12px; height: 12px; }
 
 .ainews-popup-cardtitle {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: clamp(25px, 5vw, 38px);
+  font-weight: 750;
   color: var(--text-primary);
-  line-height: 1.4;
-  margin-bottom: 16px;
+  line-height: 1.22;
+  letter-spacing: -0.04em;
+  margin: 20px 0 22px;
 }
+
+.ainews-one-card {
+  min-height: 430px;
+  height: 100%;
+  padding: 28px;
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(145deg, rgba(225,239,255,.96), rgba(255,255,255,.72));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.72), 0 16px 40px rgba(64,83,117,.10);
+  animation: ainewsCardIn .32s cubic-bezier(.22,1,.36,1);
+}
+.ainews-one-card::after {
+  content: '';
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  right: -100px;
+  top: -110px;
+  border-radius: 50%;
+  background: rgba(10,132,255,.14);
+  filter: blur(4px);
+  pointer-events: none;
+}
+.ainews-one-violet { background: linear-gradient(145deg, rgba(240,228,255,.96), rgba(255,255,255,.74)); }
+.ainews-one-violet::after { background: rgba(191,90,242,.15); }
+.ainews-one-coral { background: linear-gradient(145deg, rgba(255,231,226,.96), rgba(255,255,255,.74)); }
+.ainews-one-coral::after { background: rgba(255,107,107,.15); }
+.ainews-one-mint { background: linear-gradient(145deg, rgba(220,247,241,.96), rgba(255,255,255,.74)); }
+.ainews-one-mint::after { background: rgba(48,209,88,.13); }
+.ainews-one-topline, .ainews-one-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+.ainews-one-index {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  color: var(--accent-blue);
+}
+.ainews-one-divider { width: 42px; height: 3px; border-radius: 4px; background: currentColor; opacity: .78; margin-bottom: 22px; }
+.ainews-one-label { font-size: 12px; font-weight: 700; color: var(--text-tertiary); margin-bottom: 8px; letter-spacing: .08em; }
+.ainews-one-card .ainews-detail-oneline { font-size: 16px; line-height: 1.65; font-weight: 600; margin-bottom: 14px; }
+.ainews-one-summary { font-size: 13px; color: var(--text-secondary); line-height: 1.7; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ainews-one-bottom { margin-top: auto; padding-top: 22px; font-size: 12px; color: var(--text-tertiary); border-top: 1px solid rgba(26,26,46,.08); }
+.ainews-one-bottom a { display: inline-flex; align-items: center; gap: 3px; color: var(--text-primary); text-decoration: none; font-weight: 650; }
+.ainews-one-bottom a svg { width: 13px; height: 13px; }
+.ainews-popup-swipe-hint { font-size: 12px; color: var(--text-tertiary); }
+@keyframes ainewsCardIn { from { opacity: 0; transform: translateX(22px) scale(.985); } to { opacity: 1; transform: none; } }
 
 .ainews-popup-nav {
   display: flex;
@@ -1835,7 +1906,12 @@ body {
     border-radius: 0;
     max-width: 100%;
   }
-  .ainews-popup-cardtitle { font-size: 16px; }
+  .ainews-popup-header { padding: 16px 18px 12px; }
+  .ainews-popup-content { padding: 14px 14px 6px; }
+  .ainews-one-card { min-height: 0; padding: 24px 22px; border-radius: 22px; }
+  .ainews-popup-cardtitle { font-size: 29px; }
+  .ainews-popup-nav { padding-top: 8px; }
+  .ainews-popup-footer { padding: 4px 18px 14px; }
 }
 
 /* ===== Planning Module - 2x2 Grid ===== */

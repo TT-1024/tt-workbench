@@ -172,63 +172,112 @@ TT.AINews = (function() {
     });
   }
 
-  // ===== Daily Popup (first visit each day) =====
-  const STORAGE_KEY = 'tt_ainews_last_viewed';
+  // ===== ONE-style news deck (shown whenever the workbench is opened) =====
+  const NEWS_CACHE_KEY = 'tt_ainews_yesterday_cache_v1';
 
-  function showDailyPopup() {
-    const today = TT.Utils.todayStr();
-    const lastViewed = localStorage.getItem(STORAGE_KEY);
-    if (lastViewed === today) return; // Already viewed today
+  function yesterdayStr() {
+    const date = new Date();
+    date.setDate(date.getDate() - 1);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
 
-    if (newsData.length === 0) return;
+  function stripHtml(value) {
+    const node = document.createElement('div');
+    node.innerHTML = value || '';
+    return (node.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function safeUrl(value) {
+    try {
+      const url = new URL(value);
+      return /^https?:$/.test(url.protocol) ? url.href : '#';
+    } catch (_) {
+      return '#';
+    }
+  }
+
+  async function loadYesterdayNews() {
+    const targetDate = yesterdayStr();
+    let cached = null;
+    try { cached = JSON.parse(localStorage.getItem(NEWS_CACHE_KEY) || 'null'); } catch (_) {}
+    if (cached && cached.date === targetDate && Array.isArray(cached.items) && cached.items.length) {
+      return { items: cached.items, status: 'cached' };
+    }
+
+    const after = targetDate;
+    const beforeDate = new Date(`${targetDate}T12:00:00`);
+    beforeDate.setDate(beforeDate.getDate() + 1);
+    const before = `${beforeDate.getFullYear()}-${String(beforeDate.getMonth() + 1).padStart(2, '0')}-${String(beforeDate.getDate()).padStart(2, '0')}`;
+    const query = `(人工智能 OR AI OR OpenAI OR Anthropic OR Gemini OR 大模型) after:${after} before:${before}`;
+    const rss = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=zh-CN&gl=CN&ceid=CN:zh-Hans`;
+    const endpoint = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rss)}&count=10`;
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 4500);
+      const response = await fetch(endpoint, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const payload = await response.json();
+      const items = (payload.items || []).slice(0, 8).map((item, index) => {
+        const description = stripHtml(item.description);
+        const sourceName = item.author || (description.match(/\s-\s([^–—-]+)$/) || [])[1] || 'Google 新闻';
+        return {
+          id: `live-${targetDate}-${index}`,
+          title: stripHtml(item.title).replace(/\s[-–—]\s[^-–—]+$/, ''),
+          time: targetDate,
+          oneLine: description.replace(/\s[-–—]\s[^-–—]+$/, '').slice(0, 150) || '点击卡片查看原文与完整报道。',
+          summary: description || '点击下方来源阅读完整报道。',
+          beginner: '这是一条由工作台自动收集的昨日 AI 新闻。建议结合原文了解完整背景。',
+          why: '它出现在昨日 AI 新闻聚合结果中，代表行业近期值得留意的产品、公司或技术动态。',
+          keywords: [],
+          source: safeUrl(item.link),
+          sourceName: stripHtml(sourceName)
+        };
+      }).filter(item => item.title && item.source !== '#');
+      if (!items.length) throw new Error('No news returned');
+      localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify({ date: targetDate, items }));
+      return { items, status: 'live' };
+    } catch (error) {
+      console.warn('昨日 AI 新闻更新失败，使用内置简报：', error);
+      return { items: newsData, status: 'fallback' };
+    }
+  }
+
+  async function showDailyPopup() {
+    if (document.querySelector('.ainews-popup-overlay')) return;
+
+    const result = await loadYesterdayNews();
+    const popupNews = result.items;
+    if (!popupNews.length) return;
 
     let currentIndex = 0;
     let overlayEl = null;
 
     function renderCard(index) {
-      const item = newsData[index];
+      const item = popupNews[index];
+      const palette = ['blue', 'violet', 'coral', 'mint'][index % 4];
       return `
-        <div class="ainews-popup-meta">
-          <span class="ainews-popup-cardtime">${TT.Utils.icons.clock} ${item.time}</span>
+        <article class="ainews-one-card ainews-one-${palette}">
+        <div class="ainews-one-topline">
+          <span class="ainews-one-index">NO. ${String(index + 1).padStart(2, '0')}</span>
+          <span class="ainews-popup-cardtime">${TT.Utils.escapeHtml(item.time)}</span>
         </div>
-        <div class="ainews-popup-cardtitle">${item.title}</div>
-
-        <div class="ainews-detail-section">
-          <div class="ainews-detail-label">一句话看懂</div>
-          <div class="ainews-detail-oneline">${item.oneLine}</div>
+        <div class="ainews-popup-cardtitle">${TT.Utils.escapeHtml(item.title)}</div>
+        <div class="ainews-one-divider"></div>
+        <div class="ainews-one-label">一句话看懂</div>
+        <div class="ainews-detail-oneline">${TT.Utils.escapeHtml(item.oneLine)}</div>
+        <div class="ainews-one-summary">${TT.Utils.escapeHtml(item.summary)}</div>
+        <div class="ainews-one-bottom">
+          <span>${TT.Utils.escapeHtml(item.sourceName)}</span>
+          <a href="${safeUrl(item.source)}" target="_blank" rel="noopener noreferrer">阅读全文 ${TT.Utils.icons.chevronRight}</a>
         </div>
-        <div class="ainews-detail-section">
-          <div class="ainews-detail-label">新闻摘要</div>
-          <div class="ainews-detail-text">${item.summary}</div>
-        </div>
-        <div class="ainews-detail-section">
-          <div class="ainews-detail-label">小白解释</div>
-          <div class="ainews-detail-text">${item.beginner}</div>
-        </div>
-        <div class="ainews-detail-section">
-          <div class="ainews-detail-label">为什么重要</div>
-          <div class="ainews-detail-text">${item.why}</div>
-        </div>
-        <div class="ainews-detail-section">
-          <div class="ainews-detail-label">关键词解释</div>
-          <div class="ainews-keywords">
-            ${item.keywords.map(k => `
-              <div class="ainews-keyword">
-                <span class="ainews-keyword-term">${k.term}</span>
-                <span class="ainews-keyword-explain">${k.explain}</span>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-        <div class="ainews-detail-source">
-          ${TT.Utils.icons.link}
-          <a href="${item.source}" target="_blank" rel="noopener noreferrer">${item.sourceName}</a>
-        </div>
+        </article>
       `;
     }
 
     function renderDots() {
-      return newsData.map((_, i) => 
+      return popupNews.map((_, i) =>
         `<span class="ainews-popup-dot ${i === currentIndex ? 'active' : ''}" data-index="${i}"></span>`
       ).join('');
     }
@@ -239,7 +288,7 @@ TT.AINews = (function() {
       content.scrollTop = 0;
 
       // Update counter
-      overlayEl.querySelector('.ainews-popup-counter').textContent = `${currentIndex + 1} / ${newsData.length}`;
+      overlayEl.querySelector('.ainews-popup-counter').textContent = `${currentIndex + 1} / ${popupNews.length}`;
 
       // Update dots
       overlayEl.querySelectorAll('.ainews-popup-dot').forEach((dot, i) => {
@@ -251,8 +300,8 @@ TT.AINews = (function() {
       const nextBtn = overlayEl.querySelector('.ainews-popup-next');
       prevBtn.style.opacity = currentIndex === 0 ? '0.3' : '1';
       prevBtn.style.pointerEvents = currentIndex === 0 ? 'none' : 'auto';
-      nextBtn.style.opacity = currentIndex === newsData.length - 1 ? '0.3' : '1';
-      nextBtn.style.pointerEvents = currentIndex === newsData.length - 1 ? 'none' : 'auto';
+      nextBtn.style.opacity = currentIndex === popupNews.length - 1 ? '0.3' : '1';
+      nextBtn.style.pointerEvents = currentIndex === popupNews.length - 1 ? 'none' : 'auto';
     }
 
     overlayEl = document.createElement('div');
@@ -262,24 +311,24 @@ TT.AINews = (function() {
         <div class="ainews-popup-header">
           <div class="ainews-popup-header-left">
             ${TT.Utils.icons.trending}
-            <span>昨日AI快报</span>
+            <span>AI · ONE</span>
           </div>
           <div class="ainews-popup-header-right">
-            <span class="ainews-popup-date">${TT.Utils.formatDate(new Date(), 'short')}</span>
-            <button class="ainews-popup-close">${TT.Utils.icons.close}</button>
+            <span class="ainews-popup-date">昨日精选 · ${result.status === 'live' ? '刚刚更新' : result.status === 'cached' ? '今日缓存' : '离线简报'}</span>
+            <button class="ainews-popup-close" aria-label="关闭昨日 AI 快报">${TT.Utils.icons.close}</button>
           </div>
         </div>
         <div class="ainews-popup-content">
           ${renderCard(currentIndex)}
         </div>
         <div class="ainews-popup-nav">
-          <button class="ainews-popup-nav-btn ainews-popup-prev">${TT.Utils.icons.chevronLeft || '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>'}</button>
+          <button class="ainews-popup-nav-btn ainews-popup-prev" aria-label="上一条新闻">${TT.Utils.icons.chevronLeft || '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>'}</button>
           <div class="ainews-popup-dots">${renderDots()}</div>
-          <button class="ainews-popup-nav-btn ainews-popup-next">${TT.Utils.icons.chevronRight}</button>
+          <button class="ainews-popup-nav-btn ainews-popup-next" aria-label="下一条新闻">${TT.Utils.icons.chevronRight}</button>
         </div>
         <div class="ainews-popup-footer">
-          <span class="ainews-popup-counter">1 / ${newsData.length}</span>
-          <button class="ainews-popup-skip-btn">跳过今日简报</button>
+          <span class="ainews-popup-counter">1 / ${popupNews.length}</span>
+          <span class="ainews-popup-swipe-hint">左右滑动切换</span>
         </div>
       </div>
     `;
@@ -291,11 +340,10 @@ TT.AINews = (function() {
     function closePopup() {
       overlayEl.classList.remove('show');
       setTimeout(() => overlayEl.remove(), 400);
-      localStorage.setItem(STORAGE_KEY, TT.Utils.todayStr());
+      document.removeEventListener('keydown', keyHandler);
     }
 
     overlayEl.querySelector('.ainews-popup-close').onclick = closePopup;
-    overlayEl.querySelector('.ainews-popup-skip-btn').onclick = closePopup;
 
     // Click outside to close
     overlayEl.addEventListener('click', (e) => {
@@ -307,7 +355,7 @@ TT.AINews = (function() {
       if (currentIndex > 0) { currentIndex--; updateContent(); }
     };
     overlayEl.querySelector('.ainews-popup-next').onclick = () => {
-      if (currentIndex < newsData.length - 1) { currentIndex++; updateContent(); }
+      if (currentIndex < popupNews.length - 1) { currentIndex++; updateContent(); }
     };
 
     // Dot navigation
@@ -321,8 +369,8 @@ TT.AINews = (function() {
     // Keyboard navigation
     const keyHandler = (e) => {
       if (e.key === 'ArrowLeft' && currentIndex > 0) { currentIndex--; updateContent(); }
-      if (e.key === 'ArrowRight' && currentIndex < newsData.length - 1) { currentIndex++; updateContent(); }
-      if (e.key === 'Escape') { closePopup(); document.removeEventListener('keydown', keyHandler); }
+      if (e.key === 'ArrowRight' && currentIndex < popupNews.length - 1) { currentIndex++; updateContent(); }
+      if (e.key === 'Escape') closePopup();
     };
     document.addEventListener('keydown', keyHandler);
 
@@ -333,7 +381,7 @@ TT.AINews = (function() {
     });
     overlayEl.querySelector('.ainews-popup-content').addEventListener('touchend', (e) => {
       const dx = e.changedTouches[0].clientX - touchStartX;
-      if (dx < -50 && currentIndex < newsData.length - 1) { currentIndex++; updateContent(); }
+      if (dx < -50 && currentIndex < popupNews.length - 1) { currentIndex++; updateContent(); }
       if (dx > 50 && currentIndex > 0) { currentIndex--; updateContent(); }
     });
 
