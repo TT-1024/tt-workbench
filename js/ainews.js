@@ -143,12 +143,35 @@ TT.AINews = (function() {
   ];
 
   // ===== Render =====
-  function renderSection(container) {
-    const newsCards = newsData.map((item, i) => `
+  async function renderSection(container) {
+    container.innerHTML = `
+      <div class="ainews-section glass-card slide-up">
+        <div class="ainews-header">
+          <div class="ainews-header-title">${TT.Utils.icons.trending} 正在更新昨日 AI 快报…</div>
+        </div>
+      </div>
+    `;
+
+    const result = await loadYesterdayNews();
+    const sectionNews = result.items;
+    if (!container.isConnected) return;
+    if (!sectionNews.length) {
+      container.innerHTML = `
+        <div class="ainews-section glass-card slide-up">
+          <div class="ainews-header">
+            <div class="ainews-header-title">${TT.Utils.icons.trending} 昨日 AI 快报暂时更新失败</div>
+            <div class="ainews-header-date">请稍后刷新</div>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    const newsCards = sectionNews.map((item, i) => `
       <a href="javascript:void(0)" class="ainews-card stagger-item" style="animation-delay:${i * 0.06}s" data-id="${item.id}">
-        <div class="ainews-card-time">${item.time}</div>
-        <div class="ainews-card-title">${item.title}</div>
-        <div class="ainews-card-oneline">${item.oneLine}</div>
+        <div class="ainews-card-time">${TT.Utils.escapeHtml(item.time)}</div>
+        <div class="ainews-card-title">${TT.Utils.escapeHtml(item.title)}</div>
+        <div class="ainews-card-oneline">${TT.Utils.escapeHtml(item.oneLine)}</div>
         <div class="ainews-card-arrow">${TT.Utils.icons.chevronRight}</div>
       </a>
     `).join('');
@@ -159,7 +182,7 @@ TT.AINews = (function() {
           <div class="ainews-header-title">
             ${TT.Utils.icons.trending} 昨日AI快报
           </div>
-          <div class="ainews-header-date">${TT.Utils.formatDate(new Date(), 'short')}</div>
+          <div class="ainews-header-date">${yesterdayStr()} · ${result.status === 'live' ? '已更新' : result.status === 'cached' ? '今日缓存' : '最近缓存'}</div>
         </div>
         <div class="ainews-list">
           ${newsCards}
@@ -173,7 +196,10 @@ TT.AINews = (function() {
   }
 
   // ===== ONE-style news deck (shown whenever the workbench is opened) =====
-  const NEWS_CACHE_KEY = 'tt_ainews_yesterday_cache_v1';
+  const NEWS_CACHE_KEY = 'tt_ainews_yesterday_cache_v2';
+  let activeNews = [];
+  let newsLoadPromise = null;
+  let newsLoadDate = null;
 
   function yesterdayStr() {
     const date = new Date();
@@ -196,21 +222,19 @@ TT.AINews = (function() {
     }
   }
 
-  async function loadYesterdayNews() {
+  async function fetchYesterdayNews() {
     const targetDate = yesterdayStr();
     let cached = null;
     try { cached = JSON.parse(localStorage.getItem(NEWS_CACHE_KEY) || 'null'); } catch (_) {}
     if (cached && cached.date === targetDate && Array.isArray(cached.items) && cached.items.length) {
+      activeNews = cached.items;
       return { items: cached.items, status: 'cached' };
     }
 
-    const after = targetDate;
-    const beforeDate = new Date(`${targetDate}T12:00:00`);
-    beforeDate.setDate(beforeDate.getDate() + 1);
-    const before = `${beforeDate.getFullYear()}-${String(beforeDate.getMonth() + 1).padStart(2, '0')}-${String(beforeDate.getDate()).padStart(2, '0')}`;
-    const query = `(人工智能 OR AI OR OpenAI OR Anthropic OR Gemini OR 大模型) after:${after} before:${before}`;
-    const rss = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=zh-CN&gl=CN&ceid=CN:zh-Hans`;
-    const endpoint = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rss)}&count=10`;
+    const start = Math.floor(new Date(`${targetDate}T00:00:00`).getTime() / 1000);
+    const end = start + 24 * 60 * 60;
+    const filters = `created_at_i>=${start},created_at_i<${end}`;
+    const endpoint = `https://hn.algolia.com/api/v1/search_by_date?query=AI&tags=story&hitsPerPage=100&numericFilters=${encodeURIComponent(filters)}`;
 
     try {
       const controller = new AbortController();
@@ -219,29 +243,56 @@ TT.AINews = (function() {
       clearTimeout(timeout);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const payload = await response.json();
-      const items = (payload.items || []).slice(0, 8).map((item, index) => {
-        const description = stripHtml(item.description);
-        const sourceName = item.author || (description.match(/\s-\s([^–—-]+)$/) || [])[1] || 'Google 新闻';
+      const aiPattern = /\b(AI|LLM|OpenAI|Anthropic|Gemini|Claude|ChatGPT|machine learning|artificial intelligence|neural|language model|AI agent)\b/i;
+      const unique = new Map();
+      (payload.hits || []).forEach(item => {
+        const title = stripHtml(item.title || item.story_title);
+        const url = safeUrl(item.url || item.story_url || `https://news.ycombinator.com/item?id=${item.objectID}`);
+        if (!title || !aiPattern.test(`${title} ${url}`) || unique.has(title.toLowerCase())) return;
+        unique.set(title.toLowerCase(), { ...item, title, url });
+      });
+      const ranked = [...unique.values()].sort((a, b) =>
+        ((b.points || 0) + (b.num_comments || 0) * 2) - ((a.points || 0) + (a.num_comments || 0) * 2)
+      );
+      const items = ranked.slice(0, 8).map((item, index) => {
+        let sourceName = 'Hacker News';
+        try { sourceName = new URL(item.url).hostname.replace(/^www\./, ''); } catch (_) {}
+        const activity = `${item.points || 0} 赞 · ${item.num_comments || 0} 条讨论`;
         return {
           id: `live-${targetDate}-${index}`,
-          title: stripHtml(item.title).replace(/\s[-–—]\s[^-–—]+$/, ''),
+          title: item.title,
           time: targetDate,
-          oneLine: description.replace(/\s[-–—]\s[^-–—]+$/, '').slice(0, 150) || '点击卡片查看原文与完整报道。',
-          summary: description || '点击下方来源阅读完整报道。',
-          beginner: '这是一条由工作台自动收集的昨日 AI 新闻。建议结合原文了解完整背景。',
-          why: '它出现在昨日 AI 新闻聚合结果中，代表行业近期值得留意的产品、公司或技术动态。',
+          oneLine: `昨日 AI 社区关注动态，来自 ${sourceName}。`,
+          summary: `该内容在 Hacker News 收获 ${activity}。点击下方来源可阅读完整报道。`,
+          beginner: '这是工作台按日期自动收集的昨日 AI 新闻。',
+          why: '它是昨日 AI 技术社区关注和讨论的动态之一。',
           keywords: [],
-          source: safeUrl(item.link),
-          sourceName: stripHtml(sourceName)
+          source: item.url,
+          sourceName
         };
-      }).filter(item => item.title && item.source !== '#');
+      });
       if (!items.length) throw new Error('No news returned');
       localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify({ date: targetDate, items }));
+      activeNews = items;
       return { items, status: 'live' };
     } catch (error) {
-      console.warn('昨日 AI 新闻更新失败，使用内置简报：', error);
-      return { items: newsData, status: 'fallback' };
+      console.warn('昨日 AI 新闻更新失败：', error);
+      if (cached && Array.isArray(cached.items) && cached.items.length) {
+        activeNews = cached.items;
+        return { items: cached.items, status: 'stale' };
+      }
+      activeNews = [];
+      return { items: [], status: 'unavailable' };
     }
+  }
+
+  function loadYesterdayNews() {
+    const targetDate = yesterdayStr();
+    if (!newsLoadPromise || newsLoadDate !== targetDate) {
+      newsLoadDate = targetDate;
+      newsLoadPromise = fetchYesterdayNews();
+    }
+    return newsLoadPromise;
   }
 
   async function showDailyPopup() {
@@ -314,7 +365,7 @@ TT.AINews = (function() {
             <span>AI · ONE</span>
           </div>
           <div class="ainews-popup-header-right">
-            <span class="ainews-popup-date">昨日精选 · ${result.status === 'live' ? '刚刚更新' : result.status === 'cached' ? '今日缓存' : '离线简报'}</span>
+            <span class="ainews-popup-date">昨日精选 · ${result.status === 'live' ? '刚刚更新' : result.status === 'cached' ? '今日缓存' : '最近缓存'}</span>
             <button class="ainews-popup-close" aria-label="关闭昨日 AI 快报">${TT.Utils.icons.close}</button>
           </div>
         </div>
@@ -389,7 +440,7 @@ TT.AINews = (function() {
   }
 
   function openDetail(id) {
-    const item = newsData.find(n => n.id === id);
+    const item = activeNews.find(n => n.id === id);
     if (!item) return;
 
     const body = TT.Utils.createEl('div');
@@ -469,7 +520,30 @@ TT.AINews = (function() {
   }
 
   // ===== Collapsible Bar (always visible on dashboard) =====
-  function renderCollapsibleBar(container) {
+  async function renderCollapsibleBar(container) {
+    container.innerHTML = `
+      <div class="ainews-bar glass-card slide-up" style="animation-delay:0.02s">
+        <div class="ainews-bar-header">
+          <div class="ainews-bar-left">${TT.Utils.icons.trending}<span>正在更新昨日 AI 新闻…</span></div>
+        </div>
+      </div>
+    `;
+
+    const result = await loadYesterdayNews();
+    const barNews = result.items;
+    if (!container.isConnected) return;
+    if (!barNews.length) {
+      container.innerHTML = `
+        <div class="ainews-bar glass-card slide-up">
+          <div class="ainews-bar-header">
+            <div class="ainews-bar-left">${TT.Utils.icons.trending}<span>昨日 AI 新闻暂时更新失败</span></div>
+            <div class="ainews-bar-right"><span class="ainews-bar-count">请稍后刷新</span></div>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
     container.innerHTML = `
       <div class="ainews-bar glass-card slide-up" style="animation-delay:0.02s">
         <div class="ainews-bar-header" id="ainews-bar-toggle">
@@ -478,16 +552,16 @@ TT.AINews = (function() {
             <span>昨日AI快报</span>
           </div>
           <div class="ainews-bar-right">
-            <span class="ainews-bar-count">${newsData.length} 条</span>
+            <span class="ainews-bar-count">${barNews.length} 条 · ${result.status === 'live' ? '已更新' : result.status === 'cached' ? '今日缓存' : '最近缓存'}</span>
             <span class="ainews-bar-arrow" id="ainews-bar-arrow">${TT.Utils.icons.chevronDown}</span>
           </div>
         </div>
         <div class="ainews-bar-list" id="ainews-bar-list">
-          ${newsData.map((item, i) => `
-            <div class="ainews-bar-item" data-id="${item.id}" style="animation-delay:${0.03 + i * 0.04}s">
-              <div class="ainews-bar-item-time">${item.time}</div>
-              <div class="ainews-bar-item-title">${item.title}</div>
-              <div class="ainews-bar-item-oneline">${item.oneLine}</div>
+          ${barNews.map((item, i) => `
+            <div class="ainews-bar-item" data-id="${TT.Utils.escapeHtml(item.id)}" style="animation-delay:${0.03 + i * 0.04}s">
+              <div class="ainews-bar-item-time">${TT.Utils.escapeHtml(item.time)}</div>
+              <div class="ainews-bar-item-title">${TT.Utils.escapeHtml(item.title)}</div>
+              <div class="ainews-bar-item-oneline">${TT.Utils.escapeHtml(item.oneLine)}</div>
               <div class="ainews-bar-item-arrow">${TT.Utils.icons.chevronRight}</div>
             </div>
           `).join('')}

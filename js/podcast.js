@@ -29,10 +29,6 @@ TT.Podcast = (function() {
             <input type="text" id="podcast-search" placeholder="搜索感悟..." value="${searchQuery}">
           </div>
           <div class="category-chips" id="podcast-categories">
-            ${categories.map(c => `
-              <button class="category-chip ${currentCategory === c ? 'active' : ''}" data-cat="${TT.Utils.escapeHtml(c)}">${TT.Utils.escapeHtml(c)}</button>
-            `).join('')}
-            <button class="category-chip" id="add-category-btn" style="color:var(--text-tertiary);border-style:dashed;">+ 分类</button>
           </div>
         </div>
 
@@ -47,18 +43,7 @@ TT.Podcast = (function() {
       renderGrid();
     }, 200);
 
-    // Category filter
-    container.querySelectorAll('.category-chip[data-cat]').forEach(btn => {
-      btn.onclick = () => {
-        currentCategory = btn.dataset.cat;
-        container.querySelectorAll('.category-chip').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        renderGrid();
-      };
-    });
-
-    // Add category
-    document.getElementById('add-category-btn').onclick = openCategoryEditor;
+    renderCategoryBar();
 
     // FAB
     if (fabElement) fabElement.remove();
@@ -70,6 +55,29 @@ TT.Podcast = (function() {
     document.body.appendChild(fabElement);
 
     renderGrid();
+  }
+
+  function renderCategoryBar() {
+    const bar = document.getElementById('podcast-categories');
+    if (!bar) return;
+    const categories = TT.Store.getData().podcastCategories;
+    if (!categories.includes(currentCategory)) currentCategory = categories[0] || '';
+
+    bar.innerHTML = `
+      ${categories.map(c => `
+        <button class="category-chip ${currentCategory === c ? 'active' : ''}" data-cat="${TT.Utils.escapeHtml(c)}">${TT.Utils.escapeHtml(c)}</button>
+      `).join('')}
+      <button class="category-chip" id="add-category-btn" style="color:var(--text-tertiary);border-style:dashed;">+ 分类</button>
+    `;
+
+    bar.querySelectorAll('.category-chip[data-cat]').forEach(btn => {
+      btn.onclick = () => {
+        currentCategory = btn.dataset.cat;
+        renderCategoryBar();
+        renderGrid();
+      };
+    });
+    bar.querySelector('#add-category-btn').onclick = openCategoryEditor;
   }
 
   function renderGrid() {
@@ -215,6 +223,7 @@ TT.Podcast = (function() {
           opt.textContent = name;
           opt.selected = true;
           select.appendChild(opt);
+          renderCategoryBar();
           TT.Utils.toast('分类已添加');
         }
       });
@@ -270,6 +279,8 @@ TT.Podcast = (function() {
           TT.Store.removePodcastCategory(name);
           if (currentCategory === name) currentCategory = TT.Store.getData().podcastCategories[0] || '';
           renderCategoryList();
+          renderCategoryBar();
+          renderGrid();
           TT.Utils.toast('分类已删除');
         };
       });
@@ -282,6 +293,8 @@ TT.Podcast = (function() {
       if (categories.includes(name)) { TT.Utils.toast('分类已存在', 'error'); return; }
       TT.Store.addPodcastCategory(name);
       renderCategoryList();
+      renderCategoryBar();
+      renderGrid();
       document.getElementById('new-cat-input').value = '';
       TT.Utils.toast('分类已添加');
     };
