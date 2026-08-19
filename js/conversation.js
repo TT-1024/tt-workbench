@@ -43,7 +43,9 @@ TT.Conversation = (function() {
               <button class="category-delete-btn" data-delete-conversation-category="${TT.Utils.escapeHtml(cat)}" title="删除分类">${TT.Utils.icons.close}</button>
             </span>
           `).join('')}
-          <button class="album-filter-chip album-filter-add" id="conversation-add-category" title="新增分类">${TT.Utils.icons.plus}</button>
+          <button class="album-filter-chip album-filter-add category-manage-btn" id="conversation-add-category" title="分类管理">
+            ${TT.Utils.icons.settings}<span>分类管理</span>
+          </button>
         </div>
 
         <div class="conversation-list" id="conversation-list"></div>

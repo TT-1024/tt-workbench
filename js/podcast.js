@@ -67,7 +67,9 @@ TT.Podcast = (function() {
       ${categories.map(c => `
         <button class="category-chip ${currentCategory === c ? 'active' : ''}" data-cat="${TT.Utils.escapeHtml(c)}">${TT.Utils.escapeHtml(c)}</button>
       `).join('')}
-      <button class="category-chip" id="add-category-btn" style="color:var(--text-tertiary);border-style:dashed;">+ 分类</button>
+      <button class="category-chip category-manage-btn" id="add-category-btn">
+        ${TT.Utils.icons.settings}<span>分类管理</span>
+      </button>
     `;
 
     bar.querySelectorAll('.category-chip[data-cat]').forEach(btn => {

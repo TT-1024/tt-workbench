@@ -1,5 +1,5 @@
 /* TT工作台 - Service Worker for offline support */
-const CACHE_NAME = 'tt-workbench-v26-podcast-category-live';
+const CACHE_NAME = 'tt-workbench-v27-category-manager';
 const ASSETS = [
   './',
   './index.html',

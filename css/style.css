@@ -3124,6 +3124,31 @@ body {
   flex-shrink: 0;
 }
 .album-filter-add svg { width: 14px; height: 14px; }
+.category-manage-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 34px;
+  padding: 7px 14px !important;
+  color: #fff !important;
+  font-weight: 700;
+  border: 1px solid rgba(255,255,255,0.5) !important;
+  background: linear-gradient(135deg, #168aff, #6257dd) !important;
+  box-shadow: 0 7px 18px rgba(45,94,210,0.24), inset 0 1px 0 rgba(255,255,255,0.38);
+}
+.category-manage-btn:hover {
+  color: #fff !important;
+  background: linear-gradient(135deg, #087cf0, #5548d2) !important;
+  box-shadow: 0 9px 22px rgba(45,94,210,0.32), inset 0 1px 0 rgba(255,255,255,0.45);
+  transform: translateY(-1px);
+}
+.category-manage-btn svg {
+  width: 15px !important;
+  height: 15px !important;
+  flex-shrink: 0;
+}
 
 .category-filter-unit {
   display: inline-flex;

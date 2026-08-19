@@ -66,8 +66,8 @@ TT.Album = (function() {
           <button class="category-delete-btn" data-delete-category="${TT.Utils.escapeHtml(cat)}" title="删除分类">${TT.Utils.icons.close}</button>
         </span>
       `).join('')}
-      <button class="album-filter-chip album-filter-add" id="album-add-category">
-        ${TT.Utils.icons.plus}
+      <button class="album-filter-chip album-filter-add category-manage-btn" id="album-add-category" title="分类管理">
+        ${TT.Utils.icons.settings}<span>分类管理</span>
       </button>
     `;
 
