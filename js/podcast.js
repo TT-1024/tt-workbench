@@ -139,22 +139,13 @@ TT.Podcast = (function() {
   function openEditor(id) {
     const notes = TT.Store.getCollection('podcasts');
     const note = id ? notes.find(n => n.id === id) : null;
-    const categories = TT.Store.getData().podcastCategories;
+    const category = note ? note.category : currentCategory;
 
     const body = TT.Utils.createEl('div');
     body.innerHTML = `
       <div class="form-group">
         <label class="form-label">标题</label>
         <input type="text" class="form-input" id="podcast-title" value="${note ? TT.Utils.escapeHtml(note.title) : ''}" maxlength="100">
-      </div>
-      <div class="form-group">
-        <label class="form-label">分类</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <select class="form-select" id="podcast-category" style="flex:1;">
-            ${categories.map(c => `<option value="${c}" ${note && note.category === c ? 'selected' : ''}>${c}</option>`).join('')}
-          </select>
-          <button class="btn" type="button" id="podcast-new-cat" style="white-space:nowrap;">+ 新分类</button>
-        </div>
       </div>
       <div class="form-group">
         <label class="form-label">正文内容</label>
@@ -170,7 +161,7 @@ TT.Podcast = (function() {
       </div>
     `;
 
-    const m = TT.Utils.modal({
+    TT.Utils.modal({
       title: id ? '编辑感悟' : '新建感悟',
       size: 'lg',
       body: body,
@@ -178,7 +169,6 @@ TT.Podcast = (function() {
       onConfirm: () => {
         const title = document.getElementById('podcast-title').value.trim();
         const content = document.getElementById('podcast-content').value.trim();
-        const category = document.getElementById('podcast-category').value;
         const date = document.getElementById('podcast-date').value;
         const source = document.getElementById('podcast-source').value.trim();
 
@@ -198,39 +188,6 @@ TT.Podcast = (function() {
         renderGrid();
       }
     });
-
-    // New category button
-    m.el.querySelector('#podcast-new-cat').onclick = () => {
-      const catBody = TT.Utils.createEl('div');
-      catBody.innerHTML = `
-        <div class="form-group">
-          <label class="form-label">分类名称</label>
-          <input type="text" class="form-input" id="new-cat-name" placeholder="输入分类名称" maxlength="10">
-        </div>
-      `;
-      TT.Utils.modal({
-        title: '新建分类',
-        size: 'sm',
-        body: catBody,
-        confirmText: '添加',
-        onConfirm: () => {
-          const name = document.getElementById('new-cat-name').value.trim();
-          if (!name) { TT.Utils.toast('请输入分类名称', 'error'); return false; }
-          if (categories.includes(name)) { TT.Utils.toast('分类已存在', 'error'); return false; }
-          TT.Store.addPodcastCategory(name);
-          // Update select
-          const select = document.getElementById('podcast-category');
-          const opt = document.createElement('option');
-          opt.value = name;
-          opt.textContent = name;
-          opt.selected = true;
-          select.appendChild(opt);
-          renderCategoryBar();
-          TT.Utils.toast('分类已添加');
-        }
-      });
-      setTimeout(() => document.getElementById('new-cat-name').focus(), 100);
-    };
 
     setTimeout(() => document.getElementById('podcast-title').focus(), 100);
   }

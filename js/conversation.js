@@ -160,8 +160,7 @@ TT.Conversation = (function() {
   function openEditor(id) {
     const items = TT.Store.getCollection('conversations');
     const item = id ? items.find(n => n.id === id) : null;
-    const categories = TT.Store.getConversationCategories();
-    const selectedCategory = item ? (item.category || '大生赛') : (currentCategory || categories[0]);
+    const selectedCategory = item ? (item.category || currentCategory) : currentCategory;
 
     const today = new Date();
     const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -176,15 +175,6 @@ TT.Conversation = (function() {
         <div class="form-group" style="flex:2;min-width:160px;">
           <label class="form-label">和谁谈</label>
           <input type="text" class="form-input" id="conversation-person" value="${item ? TT.Utils.escapeHtml(item.person) : ''}" placeholder="谈话对象" maxlength="50">
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">分类</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <select class="form-select" id="conversation-category" style="flex:1;">
-            ${categories.map(cat => `<option value="${TT.Utils.escapeHtml(cat)}" ${selectedCategory === cat ? 'selected' : ''}>${TT.Utils.escapeHtml(cat)}</option>`).join('')}
-          </select>
-          <button class="btn" type="button" id="conversation-new-category">+ 新分类</button>
         </div>
       </div>
       <div class="form-group">
@@ -240,7 +230,7 @@ TT.Conversation = (function() {
         const person = document.getElementById('conversation-person').value.trim();
         const topic = document.getElementById('conversation-topic').value.trim();
         const content = document.getElementById('conversation-content').value.trim();
-        const category = document.getElementById('conversation-category').value;
+        const category = selectedCategory;
 
         if (!person && !topic && !content) {
           TT.Utils.toast('请至少填写一项内容', 'error');
@@ -261,27 +251,6 @@ TT.Conversation = (function() {
     footer.appendChild(rightGroup);
 
     m.el.appendChild(footer);
-
-    m.el.querySelector('#conversation-new-category').onclick = async () => {
-      const name = await TT.Utils.showInput({
-        title: '新增谈话分类',
-        text: '输入新的分类名称',
-        placeholder: '如：家人、朋友、工作'
-      });
-      if (!name) return;
-      if (TT.Store.getConversationCategories().includes(name)) {
-        TT.Utils.toast('分类已存在', 'error');
-        return;
-      }
-      TT.Store.addConversationCategory(name);
-      const select = m.el.querySelector('#conversation-category');
-      const option = document.createElement('option');
-      option.value = name;
-      option.textContent = name;
-      option.selected = true;
-      select.appendChild(option);
-      TT.Utils.toast('分类已添加');
-    };
 
     // Auto-focus person for new items
     if (!item) {

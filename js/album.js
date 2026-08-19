@@ -8,7 +8,6 @@ TT.Album = (function() {
   let fabElement = null;
   let multiImages = [];
   let currentFilter = '';
-  let selectedCategory = '';
 
   function render(container) {
     const categories = TT.Store.getAlbumCategories();
@@ -280,9 +279,7 @@ TT.Album = (function() {
     const item = id ? items.find(i => i.id === id) : null;
 
     multiImages = item ? [...(item.images || [])] : [];
-    selectedCategory = item ? (item.category || '') : '';
-
-    const categories = TT.Store.getAlbumCategories();
+    const selectedCategory = item ? (item.category || currentFilter) : currentFilter;
 
     const body = TT.Utils.createEl('div');
     body.innerHTML = `
@@ -302,19 +299,6 @@ TT.Album = (function() {
             </div>
           </div>
           <input type="file" id="album-image-input" accept="image/*" multiple style="display:none;">
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">分类</label>
-        <div class="album-category-chips" id="album-category-chips">
-          ${categories.map(cat => `
-            <button class="album-category-chip ${selectedCategory === cat ? 'active' : ''}" data-cat="${TT.Utils.escapeHtml(cat)}">
-              ${TT.Utils.escapeHtml(cat)}
-            </button>
-          `).join('')}
-          <button class="album-category-chip album-category-add" id="album-category-add">
-            ${TT.Utils.icons.plus} 新增
-          </button>
         </div>
       </div>
       <div class="form-group">
@@ -366,43 +350,6 @@ TT.Album = (function() {
         renderGrid();
       }
     });
-
-    // Category chip selection
-    const chipsContainer = m.el.querySelector('#album-category-chips');
-    const bindCategoryChip = (chip) => {
-      chip.onclick = (e) => {
-        e.stopPropagation();
-        selectedCategory = chip.dataset.cat;
-        chipsContainer.querySelectorAll('.album-category-chip').forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-      };
-    };
-    chipsContainer.querySelectorAll('.album-category-chip[data-cat]').forEach(bindCategoryChip);
-
-    // Add custom category from editor
-    m.el.querySelector('#album-category-add').onclick = async (e) => {
-      e.stopPropagation();
-      const name = await TT.Utils.showInput({
-        title: '新增分类',
-        text: '输入新的分类名称',
-        placeholder: '如：6人朋友、同事'
-      });
-      if (!name) return;
-      if (TT.Store.getAlbumCategories().includes(name)) {
-        TT.Utils.toast('分类已存在', 'error');
-        return;
-      }
-      TT.Store.addAlbumCategory(name);
-      selectedCategory = name;
-      chipsContainer.querySelectorAll('.album-category-chip').forEach(c => c.classList.remove('active'));
-      const newChip = document.createElement('button');
-      newChip.className = 'album-category-chip active';
-      newChip.dataset.cat = name;
-      newChip.textContent = name;
-      bindCategoryChip(newChip);
-      chipsContainer.insertBefore(newChip, m.el.querySelector('#album-category-add'));
-      TT.Utils.toast('分类已添加并选中');
-    };
 
     setupMultiImageUpload(m.el);
 
