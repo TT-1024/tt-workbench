@@ -2286,6 +2286,8 @@ body {
   font-size: 11px;
   font-weight: 600;
   margin-bottom: 10px;
+  background: var(--cat-blue-bg);
+  color: var(--accent-blue);
 }
 .podcast-card-title {
   font-size: 15px;
@@ -3646,6 +3648,14 @@ body {
 .cat-成长 { background: var(--cat-blue-bg); color: var(--accent-blue); }
 .cat-商业 { background: var(--cat-orange-bg); color: var(--accent-orange); }
 .cat-科技 { background: var(--cat-purple-bg); color: var(--accent-purple); }
+.cat-color-0 { background: var(--cat-blue-bg); color: var(--accent-blue); }
+.cat-color-1 { background: var(--cat-purple-bg); color: var(--accent-purple); }
+.cat-color-2 { background: var(--cat-pink-bg); color: var(--accent-pink); }
+.cat-color-3 { background: var(--cat-green-bg); color: var(--accent-green); }
+.cat-color-4 { background: var(--cat-orange-bg); color: var(--accent-orange); }
+.cat-color-5 { background: var(--cat-teal-bg); color: #1589a8; }
+.cat-color-6 { background: var(--cat-yellow-bg); color: #a87500; }
+.cat-color-7 { background: var(--cat-mint-bg); color: #168d84; }
 
 /* Date badge */
 .date-badge {

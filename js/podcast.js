@@ -10,6 +10,13 @@ TT.Podcast = (function() {
   let searchQuery = '';
   let fabElement = null;
 
+  function categoryColorIndex(category) {
+    const value = category || '未分类';
+    let hash = 0;
+    for (let i = 0; i < value.length; i++) hash = ((hash << 5) - hash + value.charCodeAt(i)) | 0;
+    return Math.abs(hash) % 8;
+  }
+
   function render(container) {
     const categories = TT.Store.getData().podcastCategories;
     if (!categories.includes(currentCategory)) currentCategory = categories[0] || '';
@@ -121,7 +128,7 @@ TT.Podcast = (function() {
           <button class="task-action-btn" onclick="event.stopPropagation();TT.Podcast.editNote('${note.id}')">${TT.Utils.icons.edit}</button>
           <button class="task-action-btn delete" onclick="event.stopPropagation();TT.Podcast.deleteNote('${note.id}')">${TT.Utils.icons.trash}</button>
         </div>
-        <span class="podcast-card-category cat-${TT.Utils.escapeHtml(note.category || '')}">${TT.Utils.escapeHtml(note.category || '未分类')}</span>
+        <span class="podcast-card-category cat-color-${categoryColorIndex(note.category)}">${TT.Utils.escapeHtml(note.category || '未分类')}</span>
         <div class="podcast-card-title">${TT.Utils.escapeHtml(note.title || '无标题')}</div>
         <div class="podcast-card-preview">${TT.Utils.escapeHtml(note.content || '')}</div>
         ${note.source ? `<div class="podcast-card-source">${TT.Utils.icons.link || ''} 来源：${TT.Utils.escapeHtml(note.source)}</div>` : ''}
