@@ -169,8 +169,8 @@ TT.Planning = (function() {
     }
 
     container.innerHTML = sorted.map((task, i) => `
-      <div class="task-item ${task.completed ? 'completed' : ''} stagger-item" style="animation-delay:${i * 0.03}s" data-id="${task.id}">
-        <div class="task-checkbox ${task.completed ? 'checked' : ''}" onclick="TT.Planning.toggleTask('${path}','${task.id}')">
+      <div class="task-item ${task.completed ? 'completed' : ''} stagger-item" style="animation-delay:${i * 0.03}s" data-id="${task.id}" onclick="TT.Planning.toggleTask('${path}','${task.id}')">
+        <div class="task-checkbox ${task.completed ? 'checked' : ''}">
           ${TT.Utils.icons.check}
         </div>
         <div class="task-content">
@@ -222,14 +222,43 @@ TT.Planning = (function() {
           </div>
           ${goal.note ? `<div class="goal-note">${TT.Utils.escapeHtml(goal.note)}</div>` : ''}
           <div class="goal-progress">
-            <div class="goal-progress-bar">
-              <div class="goal-progress-fill" style="width:${progress}%"></div>
-            </div>
+            <input
+              class="goal-progress-slider"
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value="${progress}"
+              aria-label="${TT.Utils.escapeHtml(goal.title)}的完成进度"
+              style="--goal-progress:${progress}%"
+            >
             <div class="goal-progress-text">${progress}%</div>
           </div>
         </div>
       `;
     }).join('');
+
+    container.querySelectorAll('.goal-progress-slider').forEach(slider => {
+      const item = slider.closest('.goal-item');
+      const name = item.querySelector('.goal-name');
+      const progressText = item.querySelector('.goal-progress-text');
+
+      slider.addEventListener('input', () => {
+        const progress = Number(slider.value);
+        slider.style.setProperty('--goal-progress', `${progress}%`);
+        progressText.textContent = `${progress}%`;
+        name.style.textDecoration = progress >= 100 ? 'line-through' : '';
+        name.style.opacity = progress >= 100 ? '0.5' : '';
+      });
+
+      slider.addEventListener('change', () => {
+        const progress = Number(slider.value);
+        TT.Store.updateItem(path, item.dataset.id, {
+          progress,
+          completed: progress >= 100
+        });
+      });
+    });
   }
 
   // ===== Render Habit List =====

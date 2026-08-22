@@ -99,7 +99,10 @@ TT.Conversation = (function() {
       items = items.filter(n =>
         (n.person || '').toLowerCase().includes(q) ||
         (n.topic || '').toLowerCase().includes(q) ||
-        (n.content || '').toLowerCase().includes(q)
+        (n.content || '').toLowerCase().includes(q) ||
+        (n.usageCorrections || '').toLowerCase().includes(q) ||
+        (n.expressionNotes || '').toLowerCase().includes(q) ||
+        (n.questionAnswers || '').toLowerCase().includes(q)
       );
     }
 
@@ -119,9 +122,21 @@ TT.Conversation = (function() {
 
     list.innerHTML = items.map((item, i) => {
       const isExpanded = expandedItems.has(item.id);
+      const isEnglish = currentCategory === '英语';
+      const englishSections = [
+        ['用法纠错', item.usageCorrections],
+        ['表达积累', item.expressionNotes],
+        ['具体问题回答', item.questionAnswers]
+      ];
       return `
       <div class="glass-card conversation-card stagger-item ${isExpanded ? 'is-expanded' : ''}" style="animation-delay:${i * 0.05}s" data-id="${item.id}">
-        <div class="conversation-card-summary">
+        <div class="conversation-card-summary ${isEnglish ? 'conversation-card-summary-english' : ''}">
+          ${isEnglish ? `
+          <div class="conversation-card-date" title="日期">
+            ${TT.Utils.icons.clock}<span>${item.date ? TT.Utils.formatDate(item.date) : '未填写'}</span>
+          </div>
+          <div class="conversation-card-topic" title="英语学习记录">英语学习记录</div>
+          ` : `
           <div class="conversation-card-person" title="谈话对象">
             ${TT.Utils.icons.chat}
             <span>${TT.Utils.escapeHtml(item.person || '未填写')}</span>
@@ -130,6 +145,7 @@ TT.Conversation = (function() {
             ${TT.Utils.icons.clock}<span>${item.date ? TT.Utils.formatDate(item.date) : '未填写'}</span>
           </div>
           <div class="conversation-card-topic" title="主题">${TT.Utils.escapeHtml(item.topic || '无主题')}</div>
+          `}
           <button class="conversation-card-toggle" type="button" aria-expanded="${isExpanded}" aria-label="${isExpanded ? '收起' : '展开'}谈话记录">
             ${TT.Utils.icons.chevronDown}
           </button>
@@ -139,7 +155,13 @@ TT.Conversation = (function() {
             <button class="task-action-btn conversation-edit-btn" type="button" title="编辑记录">${TT.Utils.icons.edit}</button>
             <button class="task-action-btn delete conversation-delete-btn" type="button" title="删除记录">${TT.Utils.icons.trash}</button>
           </div>
-          ${item.content ? `<div class="conversation-card-content">${TT.Utils.escapeHtml(item.content).replace(/\n/g, '<br>')}</div>` : '<div class="conversation-card-content conversation-card-content-empty">暂无具体内容</div>'}
+          ${isEnglish
+            ? `<div class="conversation-english-sections">${englishSections.map(([label, value]) => `
+                <section class="conversation-english-section">
+                  <div class="conversation-english-label">${label}</div>
+                  <div class="conversation-card-content ${value ? '' : 'conversation-card-content-empty'}">${value ? TT.Utils.escapeHtml(value).replace(/\n/g, '<br>') : '暂无内容'}</div>
+                </section>`).join('')}</div>`
+            : (item.content ? `<div class="conversation-card-content">${TT.Utils.escapeHtml(item.content).replace(/\n/g, '<br>')}</div>` : '<div class="conversation-card-content conversation-card-content-empty">暂无具体内容</div>')}
         </div>
       </div>
     `;
@@ -161,12 +183,30 @@ TT.Conversation = (function() {
     const items = TT.Store.getCollection('conversations');
     const item = id ? items.find(n => n.id === id) : null;
     const selectedCategory = item ? (item.category || currentCategory) : currentCategory;
+    const isEnglish = selectedCategory === '英语';
 
     const today = new Date();
     const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
     const body = TT.Utils.createEl('div');
-    body.innerHTML = `
+    body.innerHTML = isEnglish ? `
+      <div class="form-group">
+        <label class="form-label">日期</label>
+        <input type="date" class="form-input" id="conversation-date" value="${item ? item.date : dateStr}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">用法纠错</label>
+        <textarea class="form-textarea" id="conversation-usage-corrections" style="min-height:120px;" maxlength="10000" placeholder="记录需要纠正的英语用法...">${item ? TT.Utils.escapeHtml(item.usageCorrections || '') : ''}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">表达积累</label>
+        <textarea class="form-textarea" id="conversation-expression-notes" style="min-height:120px;" maxlength="10000" placeholder="积累实用的词汇和表达...">${item ? TT.Utils.escapeHtml(item.expressionNotes || '') : ''}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">具体问题回答</label>
+        <textarea class="form-textarea" id="conversation-question-answers" style="min-height:160px;" maxlength="10000" placeholder="记录具体问题与回答...">${item ? TT.Utils.escapeHtml(item.questionAnswers || '') : ''}</textarea>
+      </div>
+    ` : `
       <div class="form-row" style="display:flex;gap:12px;flex-wrap:wrap;">
         <div class="form-group" style="flex:1;min-width:140px;">
           <label class="form-label">日期</label>
@@ -227,21 +267,27 @@ TT.Conversation = (function() {
       text: '保存',
       onclick: () => {
         const date = document.getElementById('conversation-date').value;
-        const person = document.getElementById('conversation-person').value.trim();
-        const topic = document.getElementById('conversation-topic').value.trim();
-        const content = document.getElementById('conversation-content').value.trim();
         const category = selectedCategory;
+        const fields = isEnglish ? {
+          usageCorrections: document.getElementById('conversation-usage-corrections').value.trim(),
+          expressionNotes: document.getElementById('conversation-expression-notes').value.trim(),
+          questionAnswers: document.getElementById('conversation-question-answers').value.trim()
+        } : {
+          person: document.getElementById('conversation-person').value.trim(),
+          topic: document.getElementById('conversation-topic').value.trim(),
+          content: document.getElementById('conversation-content').value.trim()
+        };
 
-        if (!person && !topic && !content) {
+        if (!Object.values(fields).some(Boolean)) {
           TT.Utils.toast('请至少填写一项内容', 'error');
           return;
         }
 
         if (item) {
-          TT.Store.updateItem('conversations', id, { date, person, topic, content, category });
+          TT.Store.updateItem('conversations', id, { date, ...fields, category });
           TT.Utils.toast('已保存');
         } else {
-          TT.Store.addItem('conversations', { date, person, topic, content, category });
+          TT.Store.addItem('conversations', { date, ...fields, category });
           TT.Utils.toast('记录已保存');
         }
         m.close();
@@ -252,10 +298,10 @@ TT.Conversation = (function() {
 
     m.el.appendChild(footer);
 
-    // Auto-focus person for new items
+    // Auto-focus the first content field for new items
     if (!item) {
       setTimeout(() => {
-        const input = document.getElementById('conversation-person');
+        const input = document.getElementById(isEnglish ? 'conversation-usage-corrections' : 'conversation-person');
         if (input) input.focus();
       }, 100);
     }

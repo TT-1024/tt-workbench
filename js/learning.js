@@ -1,14 +1,16 @@
 /* ============================================
    TT工作台 - Learning Module
-   保研 / 出国 / 科研
+   英语学习 / 保研 / 出国 / 科研
    ============================================ */
 
 window.TT = window.TT || {};
 
 TT.Learning = (function() {
-  let currentTab = 'baoyan';
+  let currentTab = 'english';
+  let englishCalendarDate = new Date();
 
   const tabs = [
+    { id: 'english', name: '英语学习', icon: 'mic', path: 'learning.englishSpeakingDates', color: '#30d158' },
     { id: 'baoyan', name: '保研', icon: 'award', path: 'learning.baoyan', color: '#0a84ff' },
     { id: 'chuguo', name: '出国', icon: 'plane', path: 'learning.chuguo', color: '#bf5af2' },
     { id: 'keyan', name: '科研', icon: 'flask', path: 'learning.keyan', color: '#ff9f0a' }
@@ -43,10 +45,10 @@ TT.Learning = (function() {
         <div class="page-header">
           <div class="page-title-group">
             <h1>学习</h1>
-            <p class="page-subtitle">保研 · 出国 · 科研 — 管理你的学习规划</p>
+            <p class="page-subtitle">英语学习 · 保研 · 出国 · 科研 — 管理你的学习规划</p>
           </div>
           <div class="page-actions">
-            <button class="btn btn-primary" id="learning-add-btn">
+            <button class="btn btn-primary" id="learning-add-btn" style="${currentTab === 'english' ? 'display:none;' : ''}">
               ${TT.Utils.icon('plus', 16)} 新建事项
             </button>
           </div>
@@ -69,6 +71,8 @@ TT.Learning = (function() {
       btn.onclick = () => {
         currentTab = btn.dataset.tab;
         container.querySelectorAll('.learning-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === currentTab));
+        const addBtn = document.getElementById('learning-add-btn');
+        if (addBtn) addBtn.style.display = currentTab === 'english' ? 'none' : '';
         renderContent();
       };
     });
@@ -80,10 +84,15 @@ TT.Learning = (function() {
 
   function renderContent() {
     const tab = tabs.find(t => t.id === currentTab);
+    const content = document.getElementById('learning-content');
+
+    if (currentTab === 'english') {
+      renderEnglishCalendar(content);
+      return;
+    }
+
     const items = TT.Store.getCollection(tab.path);
     const categories = categoryLabels[currentTab];
-
-    const content = document.getElementById('learning-content');
 
     // Group by category
     const grouped = {};
@@ -140,6 +149,79 @@ TT.Learning = (function() {
     content.querySelectorAll('.learning-item').forEach(card => {
       card.onclick = () => TT.Learning.editItem(card.dataset.id);
     });
+  }
+
+  function renderEnglishCalendar(content) {
+    const dates = TT.Store.getCollection('learning.englishSpeakingDates');
+    const markedSet = new Set(dates);
+    const year = englishCalendarDate.getFullYear();
+    const month = englishCalendarDate.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+    const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+    const monthMarked = dates.filter(d => d.startsWith(monthPrefix)).length;
+    const todayStr = TT.Utils.todayStr();
+
+    let html = `
+      <div class="milktea-calendar glass-card slide-up">
+        <div class="calendar-header">
+          <button class="calendar-nav-btn" id="english-cal-prev" aria-label="上个月">${TT.Utils.icons.chevronLeft}</button>
+          <div class="calendar-title">${year}年${month + 1}月</div>
+          <button class="calendar-nav-btn" id="english-cal-next" aria-label="下个月">${TT.Utils.icons.chevronRight}</button>
+        </div>
+        <div class="calendar-stats">本月完成 <strong>${monthMarked}</strong> 天口语练习 🎙️　累计 <strong>${dates.length}</strong> 天</div>
+        <div class="calendar-weekdays">
+          <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+        </div>
+        <div class="calendar-grid">
+    `;
+
+    for (let i = firstDay - 1; i >= 0; i--) {
+      html += `<div class="calendar-day other-month">${daysInPrevMonth - i}</div>`;
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const classes = ['calendar-day'];
+      if (markedSet.has(dateStr)) classes.push('marked');
+      if (dateStr === todayStr) classes.push('today');
+      html += `<div class="${classes.join(' ')}" data-date="${dateStr}" role="button" tabindex="0" aria-label="${dateStr}口语练习打卡">${d}</div>`;
+    }
+    const remaining = (7 - ((firstDay + daysInMonth) % 7)) % 7;
+    for (let d = 1; d <= remaining; d++) {
+      html += `<div class="calendar-day other-month">${d}</div>`;
+    }
+
+    html += `</div><div class="calendar-hint">完成当天口语练习后，点击日期打卡；再次点击可取消</div></div>`;
+    content.innerHTML = html;
+
+    document.getElementById('english-cal-prev').onclick = () => {
+      englishCalendarDate = new Date(year, month - 1, 1);
+      renderEnglishCalendar(content);
+    };
+    document.getElementById('english-cal-next').onclick = () => {
+      englishCalendarDate = new Date(year, month + 1, 1);
+      renderEnglishCalendar(content);
+    };
+    content.querySelectorAll('.calendar-day[data-date]').forEach(day => {
+      const toggle = () => toggleEnglishSpeakingDate(day.dataset.date);
+      day.onclick = toggle;
+      day.onkeydown = event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          toggle();
+        }
+      };
+    });
+  }
+
+  function toggleEnglishSpeakingDate(dateStr) {
+    const dates = TT.Store.getCollection('learning.englishSpeakingDates');
+    const index = dates.indexOf(dateStr);
+    if (index === -1) dates.push(dateStr);
+    else dates.splice(index, 1);
+    TT.Store.setCollection('learning.englishSpeakingDates', dates);
+    renderEnglishCalendar(document.getElementById('learning-content'));
   }
 
   function openEditor(id) {

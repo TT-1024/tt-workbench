@@ -660,7 +660,7 @@ body {
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
   position: relative;
-  cursor: default;
+  cursor: pointer;
 }
 .task-item:hover {
   background: var(--glass-bg-active);
@@ -1742,7 +1742,8 @@ body {
 
 .ainews-popup-content {
   flex: 1;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: 20px 24px 10px;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
@@ -1773,7 +1774,6 @@ body {
 
 .ainews-one-card {
   min-height: 430px;
-  height: 100%;
   padding: 28px;
   border-radius: 24px;
   display: flex;
@@ -1818,8 +1818,10 @@ body {
 }
 .ainews-one-divider { width: 42px; height: 3px; border-radius: 4px; background: currentColor; opacity: .78; margin-bottom: 22px; }
 .ainews-one-label { font-size: 12px; font-weight: 700; color: var(--text-tertiary); margin-bottom: 8px; letter-spacing: .08em; }
-.ainews-one-card .ainews-detail-oneline { font-size: 16px; line-height: 1.65; font-weight: 600; margin-bottom: 14px; }
-.ainews-one-summary { font-size: 13px; color: var(--text-secondary); line-height: 1.7; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ainews-one-section { position: relative; z-index: 1; margin-bottom: 22px; }
+.ainews-one-overview { padding: 16px 18px; border-radius: 16px; background: rgba(255,255,255,.48); }
+.ainews-one-card .ainews-detail-oneline { font-size: 15px; line-height: 1.85; font-weight: 600; }
+.ainews-one-summary { font-size: 14px; color: var(--text-secondary); line-height: 1.9; white-space: pre-wrap; }
 .ainews-one-bottom { margin-top: auto; padding-top: 22px; font-size: 12px; color: var(--text-tertiary); border-top: 1px solid rgba(26,26,46,.08); }
 .ainews-one-bottom a { display: inline-flex; align-items: center; gap: 3px; color: var(--text-primary); text-decoration: none; font-weight: 650; }
 .ainews-one-bottom a svg { width: 13px; height: 13px; }
@@ -2052,18 +2054,45 @@ body {
   align-items: center;
   gap: 10px;
 }
-.goal-progress-bar {
+.goal-progress-slider {
   flex: 1;
   height: 6px;
-  background: rgba(0,0,0,0.06);
+  margin: 0;
+  padding: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: linear-gradient(
+    90deg,
+    var(--accent-orange) 0%,
+    var(--accent-yellow) var(--goal-progress),
+    rgba(0,0,0,0.06) var(--goal-progress),
+    rgba(0,0,0,0.06) 100%
+  );
   border-radius: var(--radius-full);
-  overflow: hidden;
+  cursor: pointer;
+  touch-action: pan-y;
 }
-.goal-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent-orange), var(--accent-yellow));
-  border-radius: var(--radius-full);
-  transition: width 0.6s var(--ease-out);
+.goal-progress-slider::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--accent-orange);
+  box-shadow: 0 2px 6px rgba(255, 159, 10, 0.35);
+}
+.goal-progress-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--accent-orange);
+  box-shadow: 0 2px 6px rgba(255, 159, 10, 0.35);
+}
+.goal-progress-slider:focus-visible {
+  outline: 3px solid rgba(255, 159, 10, 0.22);
+  outline-offset: 4px;
 }
 .goal-progress-text {
   font-size: 12px;
@@ -2453,6 +2482,9 @@ body {
   align-items: center;
   min-height: 32px;
 }
+.conversation-card-summary-english {
+  grid-template-columns: auto minmax(160px, 1fr) 32px;
+}
 .conversation-card-details {
   margin-top: 14px;
   padding-top: 14px;
@@ -2527,6 +2559,20 @@ body {
   margin-top: 4px;
 }
 .conversation-card-content-empty { color: var(--text-tertiary); }
+.conversation-english-sections {
+  display: grid;
+  gap: 16px;
+}
+.conversation-english-section + .conversation-english-section {
+  padding-top: 14px;
+  border-top: 1px solid var(--glass-border-subtle);
+}
+.conversation-english-label {
+  margin-bottom: 5px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
 @media (max-width: 768px) {
   .conversation-card { padding: 16px 18px; }
   .conversation-card-summary {
@@ -2535,6 +2581,9 @@ body {
   }
   .conversation-card-date { white-space: nowrap; }
   .conversation-card-topic { font-size: 14px; }
+  .conversation-card-summary-english {
+    grid-template-columns: auto minmax(100px, 1fr) 30px;
+  }
 }
 @media (max-width: 480px) {
   .conversation-card { padding: 14px 12px; }
@@ -2548,6 +2597,9 @@ body {
   .conversation-card-person svg,
   .conversation-card-date svg { display: none; }
   .conversation-card-toggle { width: 28px; height: 28px; }
+  .conversation-card-summary-english {
+    grid-template-columns: auto minmax(74px, 1fr) 28px;
+  }
 }
 
 /* ===== Food Journal Module ===== */

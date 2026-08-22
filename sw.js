@@ -1,5 +1,5 @@
 /* TT工作台 - Service Worker for offline support */
-const CACHE_NAME = 'tt-workbench-v29-auto-category-color';
+const CACHE_NAME = 'tt-workbench-v32-mobile-refresh';
 const ASSETS = [
   './',
   './index.html',
@@ -19,6 +19,7 @@ const ASSETS = [
   './js/inspiration.js',
   './js/conversation.js',
   './assets/avatar.jpg',
+  './ai-news.json',
   './data-backup.json'
 ];
 
@@ -56,8 +57,12 @@ self.addEventListener('fetch', (event) => {
   const networkFirst = req.mode === 'navigate' ||
     url.pathname.endsWith('/index.html') ||
     url.pathname.endsWith('/data-backup.json') ||
+    url.pathname.endsWith('/ai-news.json') ||
     url.pathname.endsWith('/js/cloudsync.js') ||
     url.pathname.endsWith('/js/store.js') ||
+    url.pathname.endsWith('/js/learning.js') ||
+    url.pathname.endsWith('/js/conversation.js') ||
+    url.pathname.endsWith('/js/planning.js') ||
     url.pathname.endsWith('/js/app.js') ||
     url.pathname.endsWith('/js/ainews.js') ||
     url.pathname.endsWith('/css/style.css');

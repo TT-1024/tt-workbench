@@ -171,7 +171,7 @@ TT.AINews = (function() {
       <a href="javascript:void(0)" class="ainews-card stagger-item" style="animation-delay:${i * 0.06}s" data-id="${item.id}">
         <div class="ainews-card-time">${TT.Utils.escapeHtml(item.time)}</div>
         <div class="ainews-card-title">${TT.Utils.escapeHtml(item.title)}</div>
-        <div class="ainews-card-oneline">${TT.Utils.escapeHtml(item.oneLine)}</div>
+        <div class="ainews-card-oneline">${TT.Utils.escapeHtml(item.overview)}</div>
         <div class="ainews-card-arrow">${TT.Utils.icons.chevronRight}</div>
       </a>
     `).join('');
@@ -196,7 +196,7 @@ TT.AINews = (function() {
   }
 
   // ===== ONE-style news deck (shown whenever the workbench is opened) =====
-  const NEWS_CACHE_KEY = 'tt_ainews_yesterday_cache_v2';
+  const NEWS_CACHE_KEY = 'tt_ainews_yesterday_cache_v3';
   let activeNews = [];
   let newsLoadPromise = null;
   let newsLoadDate = null;
@@ -231,50 +231,22 @@ TT.AINews = (function() {
       return { items: cached.items, status: 'cached' };
     }
 
-    const start = Math.floor(new Date(`${targetDate}T00:00:00`).getTime() / 1000);
-    const end = start + 24 * 60 * 60;
-    const filters = `created_at_i>=${start},created_at_i<${end}`;
-    const endpoint = `https://hn.algolia.com/api/v1/search_by_date?query=AI&tags=story&hitsPerPage=100&numericFilters=${encodeURIComponent(filters)}`;
-
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 4500);
-      const response = await fetch(endpoint, { signal: controller.signal });
+      const endpoint = new URL('ai-news.json', location.href);
+      endpoint.searchParams.set('date', targetDate);
+      endpoint.searchParams.set('t', Date.now().toString());
+      const response = await fetch(endpoint, { signal: controller.signal, cache: 'no-store' });
       clearTimeout(timeout);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const payload = await response.json();
-      const aiPattern = /\b(AI|LLM|OpenAI|Anthropic|Gemini|Claude|ChatGPT|machine learning|artificial intelligence|neural|language model|AI agent)\b/i;
-      const unique = new Map();
-      (payload.hits || []).forEach(item => {
-        const title = stripHtml(item.title || item.story_title);
-        const url = safeUrl(item.url || item.story_url || `https://news.ycombinator.com/item?id=${item.objectID}`);
-        if (!title || !aiPattern.test(`${title} ${url}`) || unique.has(title.toLowerCase())) return;
-        unique.set(title.toLowerCase(), { ...item, title, url });
-      });
-      const ranked = [...unique.values()].sort((a, b) =>
-        ((b.points || 0) + (b.num_comments || 0) * 2) - ((a.points || 0) + (a.num_comments || 0) * 2)
-      );
-      const items = ranked.slice(0, 8).map((item, index) => {
-        let sourceName = 'Hacker News';
-        try { sourceName = new URL(item.url).hostname.replace(/^www\./, ''); } catch (_) {}
-        const activity = `${item.points || 0} 赞 · ${item.num_comments || 0} 条讨论`;
-        return {
-          id: `live-${targetDate}-${index}`,
-          title: item.title,
-          time: targetDate,
-          oneLine: `昨日 AI 社区关注动态，来自 ${sourceName}。`,
-          summary: `该内容在 Hacker News 收获 ${activity}。点击下方来源可阅读完整报道。`,
-          beginner: '这是工作台按日期自动收集的昨日 AI 新闻。',
-          why: '它是昨日 AI 技术社区关注和讨论的动态之一。',
-          keywords: [],
-          source: item.url,
-          sourceName
-        };
-      });
-      if (!items.length) throw new Error('No news returned');
-      localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify({ date: targetDate, items }));
-      activeNews = items;
-      return { items, status: 'live' };
+      const items = Array.isArray(payload.items) ? payload.items : [];
+      const complete = items.filter(item => item.title && item.overview && item.summary && item.beginner && item.why && safeUrl(item.source) !== '#');
+      if (payload.date !== targetDate || complete.length < 4) throw new Error('Daily briefing is not ready');
+      localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify({ date: targetDate, items: complete }));
+      activeNews = complete;
+      return { items: complete, status: 'live' };
     } catch (error) {
       console.warn('昨日 AI 新闻更新失败：', error);
       if (cached && Array.isArray(cached.items) && cached.items.length) {
@@ -316,9 +288,22 @@ TT.AINews = (function() {
         </div>
         <div class="ainews-popup-cardtitle">${TT.Utils.escapeHtml(item.title)}</div>
         <div class="ainews-one-divider"></div>
-        <div class="ainews-one-label">一句话看懂</div>
-        <div class="ainews-detail-oneline">${TT.Utils.escapeHtml(item.oneLine)}</div>
-        <div class="ainews-one-summary">${TT.Utils.escapeHtml(item.summary)}</div>
+        <section class="ainews-one-section ainews-one-overview">
+          <div class="ainews-one-label">新闻概述</div>
+          <div class="ainews-detail-oneline">${TT.Utils.escapeHtml(item.overview)}</div>
+        </section>
+        <section class="ainews-one-section">
+          <div class="ainews-one-label">新闻摘要</div>
+          <div class="ainews-one-summary">${TT.Utils.escapeHtml(item.summary)}</div>
+        </section>
+        <section class="ainews-one-section">
+          <div class="ainews-one-label">小白解释</div>
+          <div class="ainews-one-summary">${TT.Utils.escapeHtml(item.beginner)}</div>
+        </section>
+        <section class="ainews-one-section">
+          <div class="ainews-one-label">为什么重要</div>
+          <div class="ainews-one-summary">${TT.Utils.escapeHtml(item.why)}</div>
+        </section>
         <div class="ainews-one-bottom">
           <span>${TT.Utils.escapeHtml(item.sourceName)}</span>
           <a href="${safeUrl(item.source)}" target="_blank" rel="noopener noreferrer">阅读全文 ${TT.Utils.icons.chevronRight}</a>
@@ -452,23 +437,23 @@ TT.AINews = (function() {
       </div>
 
       <div class="ainews-detail-section">
-        <div class="ainews-detail-label">一句话看懂</div>
-        <div class="ainews-detail-oneline">${item.oneLine}</div>
+        <div class="ainews-detail-label">新闻概述</div>
+        <div class="ainews-detail-oneline">${TT.Utils.escapeHtml(item.overview)}</div>
       </div>
 
       <div class="ainews-detail-section">
         <div class="ainews-detail-label">新闻摘要</div>
-        <div class="ainews-detail-text">${item.summary}</div>
+        <div class="ainews-detail-text">${TT.Utils.escapeHtml(item.summary)}</div>
       </div>
 
       <div class="ainews-detail-section">
         <div class="ainews-detail-label">小白解释</div>
-        <div class="ainews-detail-text">${item.beginner}</div>
+        <div class="ainews-detail-text">${TT.Utils.escapeHtml(item.beginner)}</div>
       </div>
 
       <div class="ainews-detail-section">
         <div class="ainews-detail-label">为什么重要</div>
-        <div class="ainews-detail-text">${item.why}</div>
+        <div class="ainews-detail-text">${TT.Utils.escapeHtml(item.why)}</div>
       </div>
 
       <div class="ainews-detail-section">
@@ -561,7 +546,7 @@ TT.AINews = (function() {
             <div class="ainews-bar-item" data-id="${TT.Utils.escapeHtml(item.id)}" style="animation-delay:${0.03 + i * 0.04}s">
               <div class="ainews-bar-item-time">${TT.Utils.escapeHtml(item.time)}</div>
               <div class="ainews-bar-item-title">${TT.Utils.escapeHtml(item.title)}</div>
-              <div class="ainews-bar-item-oneline">${TT.Utils.escapeHtml(item.oneLine)}</div>
+              <div class="ainews-bar-item-oneline">${TT.Utils.escapeHtml(item.overview)}</div>
               <div class="ainews-bar-item-arrow">${TT.Utils.icons.chevronRight}</div>
             </div>
           `).join('')}

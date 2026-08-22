@@ -32,6 +32,7 @@ TT.Store = (function() {
       habits: []
     },
     learning: {
+      englishSpeakingDates: [],
       baoyan: [],
       chuguo: [],
       keyan: []
