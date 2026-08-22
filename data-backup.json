@@ -64,12 +64,26 @@
   "tasks": {
     "daily": [
       {
-        "title": "ai新闻功能改进+已完成点一下就好",
+        "title": "ai新闻功能改进+已完成点一下就好+每日待办新增记录有问题",
         "date": "2026-08-21",
         "completed": false,
         "id": "mt2vgtd8w39w1pjzx",
         "createdAt": "2026-08-21T11:34:42.860Z",
-        "updatedAt": "2026-08-21T11:35:06.307Z"
+        "updatedAt": "2026-08-21T14:43:44.294Z"
+      },
+      {
+        "title": "买床角海绵",
+        "date": "2026-08-21",
+        "completed": false,
+        "id": "mt327e9e8swqad4jq",
+        "createdAt": "2026-08-21T14:43:20.690Z"
+      },
+      {
+        "title": "约打扫卫生",
+        "date": "2026-08-21",
+        "completed": false,
+        "id": "mt327kvvu8euaxpwi",
+        "createdAt": "2026-08-21T14:43:29.275Z"
       }
     ],
     "weekly": [
