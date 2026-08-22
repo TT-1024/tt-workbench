@@ -135,7 +135,9 @@
     "habits": []
   },
   "learning": {
-    "englishSpeakingDates": [],
+    "englishSpeakingDates": [
+      "2026-08-22"
+    ],
     "baoyan": [
       {
         "title": "保研人机构服务明细",
