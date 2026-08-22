@@ -74,9 +74,10 @@
       {
         "title": "买床角海绵",
         "date": "2026-08-21",
-        "completed": false,
+        "completed": true,
         "id": "mt327e9e8swqad4jq",
-        "createdAt": "2026-08-21T14:43:20.690Z"
+        "createdAt": "2026-08-21T14:43:20.690Z",
+        "updatedAt": "2026-08-22T08:10:06.354Z"
       },
       {
         "title": "约打扫卫生",
@@ -184,6 +185,15 @@
       "id": "mt094skjs243q0flo",
       "createdAt": "2026-08-19T15:33:58.051Z",
       "updatedAt": "2026-08-19T15:37:12.439Z"
+    },
+    {
+      "title": "刘哲采访",
+      "content": "1. 模仿类似的 提取共性-刘哲看大量的综艺 模仿其中的游戏 extract其中的结构 应用到自己的短视频",
+      "category": "商业",
+      "date": "2026-08-22",
+      "source": "抖音",
+      "id": "mt3z2e41inpbfo0mm",
+      "createdAt": "2026-08-22T06:03:14.545Z"
     }
   ],
   "album": [
