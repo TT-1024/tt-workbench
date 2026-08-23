@@ -10,6 +10,10 @@ TT.Conversation = (function() {
   let currentCategory = '';
   const expandedItems = new Set();
 
+  function isEnglishCategory(category) {
+    return category === '英语' || category === '英语口语';
+  }
+
   function render(container) {
     const categories = TT.Store.getConversationCategories();
     if (!categories.includes(currentCategory)) currentCategory = categories[0] || '';
@@ -122,7 +126,7 @@ TT.Conversation = (function() {
 
     list.innerHTML = items.map((item, i) => {
       const isExpanded = expandedItems.has(item.id);
-      const isEnglish = currentCategory === '英语';
+      const isEnglish = isEnglishCategory(currentCategory);
       const englishSections = [
         ['用法纠错', item.usageCorrections],
         ['表达积累', item.expressionNotes],
@@ -183,7 +187,7 @@ TT.Conversation = (function() {
     const items = TT.Store.getCollection('conversations');
     const item = id ? items.find(n => n.id === id) : null;
     const selectedCategory = item ? (item.category || currentCategory) : currentCategory;
-    const isEnglish = selectedCategory === '英语';
+    const isEnglish = isEnglishCategory(selectedCategory);
 
     const today = new Date();
     const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
