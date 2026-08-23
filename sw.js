@@ -1,5 +1,5 @@
 /* TT工作台 - Service Worker for offline support */
-const CACHE_NAME = 'tt-workbench-v37-fix-phrase-collapse';
+const CACHE_NAME = 'tt-workbench-v38-smooth-phrase-collapse';
 const ASSETS = [
   './',
   './index.html',

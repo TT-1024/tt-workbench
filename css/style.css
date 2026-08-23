@@ -2263,6 +2263,16 @@ body {
 .english-phrase-view-actions button:hover { background: var(--glass-bg-hover); color: var(--text-primary); }
 .english-source-list { display: flex; flex-direction: column; gap: 10px; }
 .english-source-group { display: flex; flex-direction: column; gap: 8px; }
+.english-phrase-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows .32s var(--ease-out), opacity .22s ease;
+}
+.english-source-group.expanded .english-phrase-collapse {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
 .english-source-toggle {
   width: 100%;
   padding: 14px 16px;
@@ -2286,8 +2296,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 0;
+  overflow: hidden;
 }
-.english-phrase-list[hidden] { display: none; }
 .english-phrase-card {
   display: flex;
   align-items: flex-start;

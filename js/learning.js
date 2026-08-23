@@ -229,9 +229,10 @@ TT.Learning = (function() {
       button.onclick = () => {
         if (englishPhraseSearch) return;
         const source = button.dataset.source;
-        if (expandedEnglishSources.has(source)) expandedEnglishSources.delete(source);
-        else expandedEnglishSources.add(source);
-        refreshEnglishPhraseSpace();
+        const shouldExpand = !expandedEnglishSources.has(source);
+        if (shouldExpand) expandedEnglishSources.add(source);
+        else expandedEnglishSources.delete(source);
+        setEnglishSourceGroupExpanded(button.closest('.english-source-group'), shouldExpand);
       };
     });
 
@@ -244,14 +245,14 @@ TT.Learning = (function() {
     const expandAll = document.getElementById('english-phrases-expand-all');
     if (expandAll) expandAll.onclick = () => {
       getEnglishPhraseGroups(TT.Store.getCollection('learning.englishPhrases')).forEach(group => expandedEnglishSources.add(group.source));
-      refreshEnglishPhraseSpace();
+      content.querySelectorAll('.english-source-group').forEach(group => setEnglishSourceGroupExpanded(group, true));
     };
 
     const collapseAll = document.getElementById('english-phrases-collapse-all');
     if (collapseAll) collapseAll.onclick = () => {
       expandedEnglishSources.clear();
       englishPhraseExpansionInitialized = true;
-      refreshEnglishPhraseSpace();
+      content.querySelectorAll('.english-source-group').forEach(group => setEnglishSourceGroupExpanded(group, false));
     };
 
     content.querySelectorAll('.english-phrase-edit').forEach(button => {
@@ -361,24 +362,33 @@ TT.Learning = (function() {
           <span class="english-source-count">${group.items.length}句</span>
           <span class="english-source-date">最近 ${TT.Utils.escapeHtml(group.latestDate)}</span>
         </button>
-        <div class="english-phrase-list" ${isExpanded ? '' : 'hidden'}>
-          ${group.items.map(item => `
-            <article class="glass-card english-phrase-card ${item.favorite ? 'favorite' : ''}">
-              <div class="english-phrase-main">
-                <div class="english-phrase-quote">“${TT.Utils.escapeHtml(item.english)}”</div>
-                ${item.chinese ? `<div class="english-phrase-meaning">${TT.Utils.escapeHtml(item.chinese)}</div>` : ''}
-                <div class="english-phrase-meta"><span>${TT.Utils.escapeHtml(item.date || '')}</span></div>
-              </div>
-              <div class="english-phrase-actions">
-                <button class="task-action-btn english-phrase-edit" data-id="${item.id}" aria-label="编辑">${TT.Utils.icons.edit}</button>
-                <button class="task-action-btn english-phrase-favorite ${item.favorite ? 'is-favorite' : ''}" data-id="${item.id}" aria-label="${item.favorite ? '取消收藏' : '收藏'}">${TT.Utils.icons.star}</button>
-                <button class="task-action-btn delete english-phrase-delete" data-id="${item.id}" aria-label="删除">${TT.Utils.icons.trash}</button>
-              </div>
-            </article>
-          `).join('')}
+        <div class="english-phrase-collapse">
+          <div class="english-phrase-list">
+            ${group.items.map(item => `
+              <article class="glass-card english-phrase-card ${item.favorite ? 'favorite' : ''}">
+                <div class="english-phrase-main">
+                  <div class="english-phrase-quote">“${TT.Utils.escapeHtml(item.english)}”</div>
+                  ${item.chinese ? `<div class="english-phrase-meaning">${TT.Utils.escapeHtml(item.chinese)}</div>` : ''}
+                  <div class="english-phrase-meta"><span>${TT.Utils.escapeHtml(item.date || '')}</span></div>
+                </div>
+                <div class="english-phrase-actions">
+                  <button class="task-action-btn english-phrase-edit" data-id="${item.id}" aria-label="编辑">${TT.Utils.icons.edit}</button>
+                  <button class="task-action-btn english-phrase-favorite ${item.favorite ? 'is-favorite' : ''}" data-id="${item.id}" aria-label="${item.favorite ? '取消收藏' : '收藏'}">${TT.Utils.icons.star}</button>
+                  <button class="task-action-btn delete english-phrase-delete" data-id="${item.id}" aria-label="删除">${TT.Utils.icons.trash}</button>
+                </div>
+              </article>
+            `).join('')}
+          </div>
         </div>
       </section>
     `;
+  }
+
+  function setEnglishSourceGroupExpanded(group, expanded) {
+    if (!group) return;
+    group.classList.toggle('expanded', expanded);
+    const button = group.querySelector('.english-source-toggle');
+    if (button) button.setAttribute('aria-expanded', String(expanded));
   }
 
   function refreshEnglishPhraseSpace(refocusSearch) {
