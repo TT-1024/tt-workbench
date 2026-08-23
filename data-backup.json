@@ -142,111 +142,122 @@
       {
         "english": "Can I have you call me back in 5 min? That would be great.",
         "chinese": "麻烦你五分钟之后再打过来 那样的话会很棒。\n句型分析：Can I have you do sth",
-        "source": "",
+        "source": "Grant",
         "date": "2026-08-23",
         "favorite": false,
         "id": "mt5l2qpo9saypoq5z",
         "createdAt": "2026-08-23T09:07:08.604Z",
-        "updatedAt": "2026-08-23T09:07:14.652Z"
+        "updatedAt": "2026-08-23T10:14:32.304Z"
       },
       {
         "english": "That’s completely understandable.",
         "chinese": "固定表达 表示原谅对方",
-        "source": "",
+        "source": "Grant",
         "date": "2026-08-23",
         "favorite": false,
         "id": "mt5l3zni08uxj90rm",
-        "createdAt": "2026-08-23T09:08:06.846Z"
+        "createdAt": "2026-08-23T09:08:06.846Z",
+        "updatedAt": "2026-08-23T10:14:28.853Z"
       },
       {
         "english": "I just want to let you know xxx",
         "chinese": "我只是想让你知道\n固定表达",
-        "source": "",
+        "source": "Grant",
         "date": "2026-08-23",
         "favorite": false,
         "id": "mt5l5okffio0te1ze",
-        "createdAt": "2026-08-23T09:09:25.791Z"
+        "createdAt": "2026-08-23T09:09:25.791Z",
+        "updatedAt": "2026-08-23T10:14:24.586Z"
       },
       {
         "english": "If you aren’t able to fill the seat you can use that toward a future event.",
         "chinese": "如果你买了两张票不能都用完的话，你可以在之后的活动中使用。\n固定搭配：\nfill the seat（职位）填补空缺 \ntoward a future event 到下次的活动",
-        "source": "",
+        "source": "Grant",
         "date": "2026-08-23",
         "favorite": false,
         "id": "mt5laxi1hm585o9f2",
-        "createdAt": "2026-08-23T09:13:30.649Z"
+        "createdAt": "2026-08-23T09:13:30.649Z",
+        "updatedAt": "2026-08-23T10:14:20.703Z"
       },
       {
         "english": "We’ll definitely keep in communication.",
         "chinese": "我们肯定会保持联系 固定表达",
-        "source": "",
+        "source": "Grant",
         "date": "2026-08-23",
         "favorite": false,
         "id": "mt5lenvcvys4qzlvj",
-        "createdAt": "2026-08-23T09:16:24.792Z"
+        "createdAt": "2026-08-23T09:16:24.792Z",
+        "updatedAt": "2026-08-23T10:14:16.903Z"
       },
       {
         "english": "-I’m pleasure to xxx.\n-Mine as well.",
         "chinese": "-我很荣幸xxx\n-我也是",
-        "source": "",
+        "source": "Grant",
         "date": "2026-08-23",
         "favorite": false,
         "id": "mt5lfup7ukpuweet6",
-        "createdAt": "2026-08-23T09:17:20.299Z"
+        "createdAt": "2026-08-23T09:17:20.299Z",
+        "updatedAt": "2026-08-23T10:14:12.985Z"
       },
       {
         "english": "I’m great at xxx",
         "chinese": "我擅长xxx 固定表达",
-        "source": "",
+        "source": "Grant",
         "date": "2026-08-23",
         "favorite": false,
         "id": "mt5lh1ujvgsw90uup",
-        "createdAt": "2026-08-23T09:18:16.219Z"
+        "createdAt": "2026-08-23T09:18:16.219Z",
+        "updatedAt": "2026-08-23T10:13:47.832Z"
       },
       {
         "english": "like 40 something",
         "chinese": "表达大概多少数量 数字+something",
-        "source": "",
+        "source": "Grant",
         "date": "2026-08-23",
         "favorite": false,
         "id": "mt5lhyh91dbb01o4q",
-        "createdAt": "2026-08-23T09:18:58.509Z"
+        "createdAt": "2026-08-23T09:18:58.509Z",
+        "updatedAt": "2026-08-23T10:13:43.623Z"
       },
       {
         "english": "How many people do you think we spoke to?",
         "chinese": "你认为我们和多少人交谈过？\n固定句型：how many xxx / which one do you think xxxx?",
-        "source": "",
+        "source": "Grant",
         "date": "2026-08-23",
         "favorite": false,
         "id": "mt5ljwn45pwssjead",
-        "createdAt": "2026-08-23T09:20:29.440Z"
+        "createdAt": "2026-08-23T09:20:29.440Z",
+        "updatedAt": "2026-08-23T10:13:38.463Z"
       },
       {
         "english": "Did we already called him?",
         "chinese": "我们已经给他打过电话了吗？\n固定句型：Did we already done sth？我们已经做过什么事了吗？",
-        "source": "",
+        "source": "Grant",
         "date": "2026-08-23",
         "favorite": false,
         "id": "mt5ll6bdgjp0frlb0",
-        "createdAt": "2026-08-23T09:21:28.633Z"
+        "createdAt": "2026-08-23T09:21:28.633Z",
+        "updatedAt": "2026-08-23T10:13:33.579Z"
       },
       {
         "english": "hit the redial",
         "chinese": "按重拨",
-        "source": "",
+        "source": "Grant",
         "date": "2026-08-23",
         "favorite": false,
         "id": "mt5lmg9o7jior62mo",
-        "createdAt": "2026-08-23T09:22:28.188Z"
+        "createdAt": "2026-08-23T09:22:28.188Z",
+        "updatedAt": "2026-08-23T10:13:28.796Z"
       },
       {
         "english": "When she puts you off for a second",
         "chinese": "当他让你失去了信心或兴趣\n固定句型：put sb off 受挫的感觉",
-        "source": "",
+        "source": "Grant",
         "date": "2026-08-23",
         "favorite": false,
         "id": "mt5lnx577ijlj8ckk",
-        "createdAt": "2026-08-23T09:23:36.715Z"
+        "createdAt": "2026-08-23T09:23:36.715Z",
+        "updatedAt": "2026-08-23T10:13:18.326Z"
       },
       {
         "english": "It’ll just have us stay on.",
