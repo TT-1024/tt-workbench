@@ -225,6 +225,10 @@ TT.Learning = (function() {
     const addButton = document.getElementById('english-phrase-add');
     if (addButton) addButton.onclick = () => openEnglishPhraseEditor();
 
+    content.querySelectorAll('.english-source-add-record').forEach(button => {
+      button.onclick = () => openEnglishPhraseEditor(null, button.dataset.source);
+    });
+
     content.querySelectorAll('.english-source-toggle').forEach(button => {
       button.onclick = () => {
         if (englishPhraseSearch) return;
@@ -278,10 +282,8 @@ TT.Learning = (function() {
   function renderEnglishPhraseSpace() {
     const phrases = TT.Store.getCollection('learning.englishPhrases');
     const query = englishPhraseSearch.trim().toLowerCase();
-    const filtered = query ? phrases.filter(item =>
-      [item.english, item.chinese, item.source].some(value => String(value || '').toLowerCase().includes(query))
-    ) : phrases;
-    const groups = getEnglishPhraseGroups(filtered);
+    const groups = getEnglishPhraseGroups(phrases, query);
+    const hasSources = getEnglishPhraseSourceOptions().length > 0;
 
     if (!englishPhraseExpansionInitialized && groups.length) {
       expandedEnglishSources.add(groups[0].source);
@@ -297,7 +299,7 @@ TT.Learning = (function() {
           </div>
           <button class="btn btn-primary" id="english-phrase-add">${TT.Utils.icon('plus', 16)} 记一句</button>
         </div>
-        ${phrases.length ? `
+        ${phrases.length || hasSources ? `
           <div class="english-phrase-toolbar">
             <div class="english-phrase-search-wrap">
               ${TT.Utils.icon('search', 15)}
@@ -323,15 +325,19 @@ TT.Learning = (function() {
     `;
   }
 
-  function getEnglishPhraseGroups(phrases) {
+  function getEnglishPhraseGroups(phrases, query) {
     const grouped = new Map();
+    TT.Store.getCollection('learning.englishPhraseSources').forEach(source => {
+      const normalized = String(source || '').trim();
+      if (normalized && !grouped.has(normalized)) grouped.set(normalized, []);
+    });
     phrases.forEach(item => {
       const source = String(item.source || '').trim();
       if (!grouped.has(source)) grouped.set(source, []);
       grouped.get(source).push(item);
     });
 
-    return [...grouped.entries()].map(([source, items]) => {
+    const groups = [...grouped.entries()].map(([source, items]) => {
       const sortedItems = [...items].sort((a, b) => {
         if (!!a.favorite !== !!b.favorite) return a.favorite ? -1 : 1;
         return String(b.createdAt || b.date || '').localeCompare(String(a.createdAt || a.date || ''));
@@ -349,19 +355,32 @@ TT.Learning = (function() {
           return value > latest ? value : latest;
         }, '')
       };
-    }).sort((a, b) => b.latest.localeCompare(a.latest));
+    }).sort((a, b) => {
+      if (!!a.latest !== !!b.latest) return a.latest ? -1 : 1;
+      return b.latest.localeCompare(a.latest) || a.label.localeCompare(b.label, 'zh-CN');
+    });
+
+    if (!query) return groups;
+    return groups.filter(group =>
+      group.source.toLowerCase().includes(query) || group.items.some(item =>
+        [item.english, item.chinese].some(value => String(value || '').toLowerCase().includes(query))
+      )
+    );
   }
 
   function renderEnglishPhraseGroup(group, forceExpanded) {
     const isExpanded = forceExpanded || expandedEnglishSources.has(group.source);
     return `
       <section class="english-source-group ${isExpanded ? 'expanded' : ''}">
-        <button class="glass-card english-source-toggle" data-source="${TT.Utils.escapeHtml(group.source)}" aria-expanded="${isExpanded}">
-          <span class="english-source-chevron">${TT.Utils.icons.chevronRight}</span>
-          <span class="english-source-name">${TT.Utils.escapeHtml(group.label)}</span>
-          <span class="english-source-count">${group.items.length}句</span>
-          <span class="english-source-date">最近 ${TT.Utils.escapeHtml(group.latestDate)}</span>
-        </button>
+        <div class="glass-card english-source-header">
+          <button class="english-source-toggle" data-source="${TT.Utils.escapeHtml(group.source)}" aria-expanded="${isExpanded}">
+            <span class="english-source-chevron">${TT.Utils.icons.chevronRight}</span>
+            <span class="english-source-name">${TT.Utils.escapeHtml(group.label)}</span>
+            <span class="english-source-count">${group.items.length}句</span>
+            <span class="english-source-date">${group.latestDate ? `最近 ${TT.Utils.escapeHtml(group.latestDate)}` : '暂无记录'}</span>
+          </button>
+          <button class="english-source-add-record" data-source="${TT.Utils.escapeHtml(group.source)}" aria-label="在${TT.Utils.escapeHtml(group.label)}中新增记录">${TT.Utils.icon('plus', 16)}</button>
+        </div>
         <div class="english-phrase-collapse">
           <div class="english-phrase-list">
             ${group.items.map(item => `
@@ -406,11 +425,13 @@ TT.Learning = (function() {
     }
   }
 
-  function openEnglishPhraseEditor(id) {
+  function openEnglishPhraseEditor(id, preferredSource) {
     const item = id
       ? TT.Store.getCollection('learning.englishPhrases').find(entry => entry.id === id)
       : null;
     if (id && !item) return;
+    const sourceOptions = getEnglishPhraseSourceOptions();
+    const selectedSource = item ? String(item.source || '') : String(preferredSource || '');
 
     const body = TT.Utils.createEl('div');
     body.innerHTML = `
@@ -423,8 +444,14 @@ TT.Learning = (function() {
         <textarea class="form-textarea" id="english-phrase-chinese" placeholder="用自己的话写下中文理解" maxlength="500">${item ? TT.Utils.escapeHtml(item.chinese || '') : ''}</textarea>
       </div>
       <div class="form-group">
-        <label class="form-label">视频来源（选填）</label>
-        <input class="form-input" id="english-phrase-source" value="${item ? TT.Utils.escapeHtml(item.source || '') : ''}" placeholder="例如：TED · How to speak so people listen" maxlength="150">
+        <label class="form-label">分类来源</label>
+        <div class="english-source-picker">
+          <select class="form-select" id="english-phrase-source">
+            <option value="">未分类</option>
+            ${sourceOptions.map(source => `<option value="${TT.Utils.escapeHtml(source)}" ${source === selectedSource ? 'selected' : ''}>${TT.Utils.escapeHtml(source)}</option>`).join('')}
+          </select>
+          <button type="button" class="btn english-source-create" id="english-phrase-source-create" aria-label="新建分类">${TT.Utils.icon('plus', 18)}</button>
+        </div>
       </div>
     `;
 
@@ -458,7 +485,46 @@ TT.Learning = (function() {
         renderEnglishCalendar(document.getElementById('learning-content'));
       }
     });
+    document.getElementById('english-phrase-source-create').onclick = () => {
+      createEnglishPhraseSource(document.getElementById('english-phrase-source'));
+    };
     setTimeout(() => document.getElementById('english-phrase-text').focus(), 100);
+  }
+
+  function getEnglishPhraseSourceOptions() {
+    const saved = TT.Store.getCollection('learning.englishPhraseSources');
+    const used = TT.Store.getCollection('learning.englishPhrases').map(item => String(item.source || '').trim()).filter(Boolean);
+    return [...new Set([...saved, ...used].map(source => String(source || '').trim()).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, 'zh-CN'));
+  }
+
+  async function createEnglishPhraseSource(selectElement) {
+    const source = await TT.Utils.showInput({
+      title: '新建分类',
+      text: '以后新增记录时可以直接选择这个分类',
+      placeholder: '例如：TED、老友记 S01E01',
+      confirmText: '创建'
+    });
+    if (!source) return;
+
+    const sources = getEnglishPhraseSourceOptions();
+    if (!sources.includes(source)) {
+      const saved = TT.Store.getCollection('learning.englishPhraseSources');
+      TT.Store.setCollection('learning.englishPhraseSources', [...new Set([...saved, source])]);
+      expandedEnglishSources.add(source);
+      refreshEnglishPhraseSpace();
+      TT.Utils.toast('分类已创建');
+    } else {
+      TT.Utils.toast('这个分类已经存在');
+    }
+
+    if (selectElement && ![...selectElement.options].some(option => option.value === source)) {
+      const option = document.createElement('option');
+      option.value = source;
+      option.textContent = source;
+      selectElement.appendChild(option);
+    }
+    if (selectElement) selectElement.value = source;
   }
 
   function toggleEnglishPhraseFavorite(id) {

@@ -2273,19 +2273,43 @@ body {
   grid-template-rows: 1fr;
   opacity: 1;
 }
-.english-source-toggle {
+.english-source-header {
   width: 100%;
-  padding: 14px 16px;
+  padding: 0;
   border-radius: var(--radius-md);
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+}
+.english-source-toggle {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 12px 14px 16px;
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 10px;
-  border: 1px solid var(--glass-border);
+  border: none;
+  background: transparent;
   color: var(--text-primary);
   text-align: left;
   cursor: pointer;
 }
+.english-source-add-record {
+  width: 46px;
+  flex-shrink: 0;
+  border: none;
+  border-left: 1px solid var(--glass-border-subtle);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color .2s, background .2s;
+}
+.english-source-add-record:hover { color: var(--accent-blue); background: var(--glass-bg-hover); }
+.english-source-add-record svg { width: 16px; height: 16px; }
 .english-source-chevron { display: flex; color: var(--text-tertiary); transition: transform .2s; }
 .english-source-chevron svg { width: 16px; height: 16px; }
 .english-source-group.expanded .english-source-chevron { transform: rotate(90deg); }
@@ -2334,6 +2358,9 @@ body {
   color: var(--text-tertiary);
 }
 .english-phrase-actions { display: flex; gap: 4px; }
+.english-source-picker { display: flex; align-items: stretch; gap: 8px; }
+.english-source-picker .form-select { flex: 1; min-width: 0; }
+.english-source-create { width: 44px; padding: 0; flex-shrink: 0; }
 .english-phrase-favorite.is-favorite { color: var(--accent-orange); }
 .english-phrase-empty {
   padding: 30px 20px;
@@ -2349,7 +2376,7 @@ body {
   .english-phrase-header .btn { padding-left: 14px; padding-right: 14px; }
   .english-phrase-toolbar { align-items: stretch; flex-direction: column; }
   .english-phrase-view-actions { justify-content: flex-end; }
-  .english-source-toggle { grid-template-columns: 18px minmax(0, 1fr) auto; padding: 13px 12px; }
+  .english-source-toggle { grid-template-columns: 18px minmax(0, 1fr) auto; padding: 13px 10px 13px 12px; }
   .english-source-date { display: none; }
   .english-phrase-card { padding: 16px; gap: 8px; }
 }
