@@ -2287,6 +2287,7 @@ body {
   flex-direction: column;
   gap: 10px;
 }
+.english-phrase-list[hidden] { display: none; }
 .english-phrase-card {
   display: flex;
   align-items: flex-start;
