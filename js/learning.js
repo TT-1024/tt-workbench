@@ -216,6 +216,9 @@ TT.Learning = (function() {
     });
 
     document.getElementById('english-phrase-add').onclick = () => openEnglishPhraseEditor();
+    content.querySelectorAll('.english-phrase-edit').forEach(button => {
+      button.onclick = () => openEnglishPhraseEditor(button.dataset.id);
+    });
     content.querySelectorAll('.english-phrase-favorite').forEach(button => {
       button.onclick = () => toggleEnglishPhraseFavorite(button.dataset.id);
     });
@@ -262,6 +265,7 @@ TT.Learning = (function() {
                   </div>
                 </div>
                 <div class="english-phrase-actions">
+                  <button class="task-action-btn english-phrase-edit" data-id="${item.id}" aria-label="编辑">${TT.Utils.icons.edit}</button>
                   <button class="task-action-btn english-phrase-favorite ${item.favorite ? 'is-favorite' : ''}" data-id="${item.id}" aria-label="${item.favorite ? '取消收藏' : '收藏'}">${TT.Utils.icons.star}</button>
                   <button class="task-action-btn delete english-phrase-delete" data-id="${item.id}" aria-label="删除">${TT.Utils.icons.trash}</button>
                 </div>
@@ -278,25 +282,30 @@ TT.Learning = (function() {
     `;
   }
 
-  function openEnglishPhraseEditor() {
+  function openEnglishPhraseEditor(id) {
+    const item = id
+      ? TT.Store.getCollection('learning.englishPhrases').find(entry => entry.id === id)
+      : null;
+    if (id && !item) return;
+
     const body = TT.Utils.createEl('div');
     body.innerHTML = `
       <div class="form-group">
         <label class="form-label">英文原句</label>
-        <textarea class="form-textarea" id="english-phrase-text" placeholder="What a wonderful thought it is..." maxlength="500"></textarea>
+        <textarea class="form-textarea" id="english-phrase-text" placeholder="What a wonderful thought it is..." maxlength="500">${item ? TT.Utils.escapeHtml(item.english) : ''}</textarea>
       </div>
       <div class="form-group">
         <label class="form-label">我的理解（选填）</label>
-        <textarea class="form-textarea" id="english-phrase-chinese" placeholder="用自己的话写下中文理解" maxlength="500"></textarea>
+        <textarea class="form-textarea" id="english-phrase-chinese" placeholder="用自己的话写下中文理解" maxlength="500">${item ? TT.Utils.escapeHtml(item.chinese || '') : ''}</textarea>
       </div>
       <div class="form-group">
         <label class="form-label">视频来源（选填）</label>
-        <input class="form-input" id="english-phrase-source" placeholder="例如：TED · How to speak so people listen" maxlength="150">
+        <input class="form-input" id="english-phrase-source" value="${item ? TT.Utils.escapeHtml(item.source || '') : ''}" placeholder="例如：TED · How to speak so people listen" maxlength="150">
       </div>
     `;
 
     TT.Utils.modal({
-      title: '记录好词好句',
+      title: item ? '编辑好词好句' : '记录好词好句',
       body,
       confirmText: '保存',
       onConfirm: () => {
@@ -305,14 +314,22 @@ TT.Learning = (function() {
           TT.Utils.toast('请先写下英文原句', 'error');
           return false;
         }
-        TT.Store.addItem('learning.englishPhrases', {
+        const updates = {
           english,
           chinese: document.getElementById('english-phrase-chinese').value.trim(),
-          source: document.getElementById('english-phrase-source').value.trim(),
-          date: TT.Utils.todayStr(),
-          favorite: false
-        });
-        TT.Utils.toast('已经帮你记下来了');
+          source: document.getElementById('english-phrase-source').value.trim()
+        };
+        if (item) {
+          TT.Store.updateItem('learning.englishPhrases', item.id, updates);
+          TT.Utils.toast('修改已保存');
+        } else {
+          TT.Store.addItem('learning.englishPhrases', {
+            ...updates,
+            date: TT.Utils.todayStr(),
+            favorite: false
+          });
+          TT.Utils.toast('已经帮你记下来了');
+        }
         renderEnglishCalendar(document.getElementById('learning-content'));
       }
     });

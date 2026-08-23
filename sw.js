@@ -1,5 +1,5 @@
 /* TT工作台 - Service Worker for offline support */
-const CACHE_NAME = 'tt-workbench-v33-mobile-english-phrases';
+const CACHE_NAME = 'tt-workbench-v35-phrase-line-breaks';
 const ASSETS = [
   './',
   './index.html',
