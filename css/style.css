@@ -2220,6 +2220,68 @@ body {
   font-size: 12px;
   color: var(--text-tertiary);
 }
+.english-phrase-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.english-phrase-search-wrap {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 13px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--glass-bg);
+  color: var(--text-tertiary);
+}
+.english-phrase-search-wrap svg { width: 15px; height: 15px; flex-shrink: 0; }
+.english-phrase-search-wrap input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+}
+.english-phrase-view-actions { display: flex; gap: 4px; }
+.english-phrase-view-actions button {
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  padding: 7px 8px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.english-phrase-view-actions button:hover { background: var(--glass-bg-hover); color: var(--text-primary); }
+.english-source-list { display: flex; flex-direction: column; gap: 10px; }
+.english-source-group { display: flex; flex-direction: column; gap: 8px; }
+.english-source-toggle {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.english-source-chevron { display: flex; color: var(--text-tertiary); transition: transform .2s; }
+.english-source-chevron svg { width: 16px; height: 16px; }
+.english-source-group.expanded .english-source-chevron { transform: rotate(90deg); }
+.english-source-name { font-size: 14px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.english-source-count { font-size: 12px; color: var(--accent-blue); font-weight: 650; }
+.english-source-date { font-size: 11px; color: var(--text-tertiary); }
 .english-phrase-list {
   display: flex;
   flex-direction: column;
@@ -2273,6 +2335,10 @@ body {
 @media (max-width: 600px) {
   .english-phrase-header { align-items: flex-end; }
   .english-phrase-header .btn { padding-left: 14px; padding-right: 14px; }
+  .english-phrase-toolbar { align-items: stretch; flex-direction: column; }
+  .english-phrase-view-actions { justify-content: flex-end; }
+  .english-source-toggle { grid-template-columns: 18px minmax(0, 1fr) auto; padding: 13px 12px; }
+  .english-source-date { display: none; }
   .english-phrase-card { padding: 16px; gap: 8px; }
 }
 

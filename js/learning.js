@@ -8,6 +8,9 @@ window.TT = window.TT || {};
 TT.Learning = (function() {
   let currentTab = 'english';
   let englishCalendarDate = new Date();
+  let englishPhraseSearch = '';
+  let englishPhraseExpansionInitialized = false;
+  const expandedEnglishSources = new Set();
 
   const tabs = [
     { id: 'english', name: '英语学习', icon: 'mic', path: 'learning.englishSpeakingDates', color: '#30d158' },
@@ -215,7 +218,42 @@ TT.Learning = (function() {
       };
     });
 
-    document.getElementById('english-phrase-add').onclick = () => openEnglishPhraseEditor();
+    bindEnglishPhraseInteractions(content);
+  }
+
+  function bindEnglishPhraseInteractions(content) {
+    const addButton = document.getElementById('english-phrase-add');
+    if (addButton) addButton.onclick = () => openEnglishPhraseEditor();
+
+    content.querySelectorAll('.english-source-toggle').forEach(button => {
+      button.onclick = () => {
+        if (englishPhraseSearch) return;
+        const source = button.dataset.source;
+        if (expandedEnglishSources.has(source)) expandedEnglishSources.delete(source);
+        else expandedEnglishSources.add(source);
+        refreshEnglishPhraseSpace();
+      };
+    });
+
+    const searchInput = document.getElementById('english-phrase-search');
+    if (searchInput) searchInput.oninput = () => {
+      englishPhraseSearch = searchInput.value;
+      refreshEnglishPhraseSpace(true);
+    };
+
+    const expandAll = document.getElementById('english-phrases-expand-all');
+    if (expandAll) expandAll.onclick = () => {
+      getEnglishPhraseGroups(TT.Store.getCollection('learning.englishPhrases')).forEach(group => expandedEnglishSources.add(group.source));
+      refreshEnglishPhraseSpace();
+    };
+
+    const collapseAll = document.getElementById('english-phrases-collapse-all');
+    if (collapseAll) collapseAll.onclick = () => {
+      expandedEnglishSources.clear();
+      englishPhraseExpansionInitialized = true;
+      refreshEnglishPhraseSpace();
+    };
+
     content.querySelectorAll('.english-phrase-edit').forEach(button => {
       button.onclick = () => openEnglishPhraseEditor(button.dataset.id);
     });
@@ -238,10 +276,16 @@ TT.Learning = (function() {
 
   function renderEnglishPhraseSpace() {
     const phrases = TT.Store.getCollection('learning.englishPhrases');
-    const sorted = [...phrases].sort((a, b) => {
-      if (!!a.favorite !== !!b.favorite) return a.favorite ? -1 : 1;
-      return String(b.createdAt || b.date || '').localeCompare(String(a.createdAt || a.date || ''));
-    });
+    const query = englishPhraseSearch.trim().toLowerCase();
+    const filtered = query ? phrases.filter(item =>
+      [item.english, item.chinese, item.source].some(value => String(value || '').toLowerCase().includes(query))
+    ) : phrases;
+    const groups = getEnglishPhraseGroups(filtered);
+
+    if (!englishPhraseExpansionInitialized && groups.length) {
+      expandedEnglishSources.add(groups[0].source);
+      englishPhraseExpansionInitialized = true;
+    }
 
     return `
       <section class="english-phrase-space">
@@ -252,25 +296,21 @@ TT.Learning = (function() {
           </div>
           <button class="btn btn-primary" id="english-phrase-add">${TT.Utils.icon('plus', 16)} 记一句</button>
         </div>
-        ${sorted.length ? `
-          <div class="english-phrase-list">
-            ${sorted.map(item => `
-              <article class="glass-card english-phrase-card ${item.favorite ? 'favorite' : ''}">
-                <div class="english-phrase-main">
-                  <div class="english-phrase-quote">“${TT.Utils.escapeHtml(item.english)}”</div>
-                  ${item.chinese ? `<div class="english-phrase-meaning">${TT.Utils.escapeHtml(item.chinese)}</div>` : ''}
-                  <div class="english-phrase-meta">
-                    <span>${TT.Utils.escapeHtml(item.date || '')}</span>
-                    ${item.source ? `<span>来自 ${TT.Utils.escapeHtml(item.source)}</span>` : ''}
-                  </div>
-                </div>
-                <div class="english-phrase-actions">
-                  <button class="task-action-btn english-phrase-edit" data-id="${item.id}" aria-label="编辑">${TT.Utils.icons.edit}</button>
-                  <button class="task-action-btn english-phrase-favorite ${item.favorite ? 'is-favorite' : ''}" data-id="${item.id}" aria-label="${item.favorite ? '取消收藏' : '收藏'}">${TT.Utils.icons.star}</button>
-                  <button class="task-action-btn delete english-phrase-delete" data-id="${item.id}" aria-label="删除">${TT.Utils.icons.trash}</button>
-                </div>
-              </article>
-            `).join('')}
+        ${phrases.length ? `
+          <div class="english-phrase-toolbar">
+            <div class="english-phrase-search-wrap">
+              ${TT.Utils.icon('search', 15)}
+              <input id="english-phrase-search" value="${TT.Utils.escapeHtml(englishPhraseSearch)}" placeholder="搜索英文、中文或来源">
+            </div>
+            <div class="english-phrase-view-actions">
+              <button id="english-phrases-expand-all">全部展开</button>
+              <button id="english-phrases-collapse-all">全部收起</button>
+            </div>
+          </div>
+          <div class="english-source-list">
+            ${groups.length ? groups.map(group => renderEnglishPhraseGroup(group, !!query)).join('') : `
+              <div class="glass-card english-phrase-empty"><div>🔍</div><p>没有找到相关记录</p></div>
+            `}
           </div>
         ` : `
           <div class="glass-card english-phrase-empty">
@@ -280,6 +320,80 @@ TT.Learning = (function() {
         `}
       </section>
     `;
+  }
+
+  function getEnglishPhraseGroups(phrases) {
+    const grouped = new Map();
+    phrases.forEach(item => {
+      const source = String(item.source || '').trim();
+      if (!grouped.has(source)) grouped.set(source, []);
+      grouped.get(source).push(item);
+    });
+
+    return [...grouped.entries()].map(([source, items]) => {
+      const sortedItems = [...items].sort((a, b) => {
+        if (!!a.favorite !== !!b.favorite) return a.favorite ? -1 : 1;
+        return String(b.createdAt || b.date || '').localeCompare(String(a.createdAt || a.date || ''));
+      });
+      const latestItem = [...items].sort((a, b) =>
+        String(b.updatedAt || b.createdAt || b.date || '').localeCompare(String(a.updatedAt || a.createdAt || a.date || ''))
+      )[0];
+      return {
+        source,
+        label: source || '未分类',
+        items: sortedItems,
+        latestDate: latestItem ? latestItem.date || '' : '',
+        latest: sortedItems.reduce((latest, item) => {
+          const value = String(item.updatedAt || item.createdAt || item.date || '');
+          return value > latest ? value : latest;
+        }, '')
+      };
+    }).sort((a, b) => b.latest.localeCompare(a.latest));
+  }
+
+  function renderEnglishPhraseGroup(group, forceExpanded) {
+    const isExpanded = forceExpanded || expandedEnglishSources.has(group.source);
+    return `
+      <section class="english-source-group ${isExpanded ? 'expanded' : ''}">
+        <button class="glass-card english-source-toggle" data-source="${TT.Utils.escapeHtml(group.source)}" aria-expanded="${isExpanded}">
+          <span class="english-source-chevron">${TT.Utils.icons.chevronRight}</span>
+          <span class="english-source-name">${TT.Utils.escapeHtml(group.label)}</span>
+          <span class="english-source-count">${group.items.length}句</span>
+          <span class="english-source-date">最近 ${TT.Utils.escapeHtml(group.latestDate)}</span>
+        </button>
+        <div class="english-phrase-list" ${isExpanded ? '' : 'hidden'}>
+          ${group.items.map(item => `
+            <article class="glass-card english-phrase-card ${item.favorite ? 'favorite' : ''}">
+              <div class="english-phrase-main">
+                <div class="english-phrase-quote">“${TT.Utils.escapeHtml(item.english)}”</div>
+                ${item.chinese ? `<div class="english-phrase-meaning">${TT.Utils.escapeHtml(item.chinese)}</div>` : ''}
+                <div class="english-phrase-meta"><span>${TT.Utils.escapeHtml(item.date || '')}</span></div>
+              </div>
+              <div class="english-phrase-actions">
+                <button class="task-action-btn english-phrase-edit" data-id="${item.id}" aria-label="编辑">${TT.Utils.icons.edit}</button>
+                <button class="task-action-btn english-phrase-favorite ${item.favorite ? 'is-favorite' : ''}" data-id="${item.id}" aria-label="${item.favorite ? '取消收藏' : '收藏'}">${TT.Utils.icons.star}</button>
+                <button class="task-action-btn delete english-phrase-delete" data-id="${item.id}" aria-label="删除">${TT.Utils.icons.trash}</button>
+              </div>
+            </article>
+          `).join('')}
+        </div>
+      </section>
+    `;
+  }
+
+  function refreshEnglishPhraseSpace(refocusSearch) {
+    const section = document.querySelector('.english-phrase-space');
+    if (!section) return;
+    section.outerHTML = renderEnglishPhraseSpace();
+    const content = document.getElementById('learning-content');
+    bindEnglishPhraseInteractions(content);
+    if (refocusSearch) {
+      const input = document.getElementById('english-phrase-search');
+      if (input) {
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      }
+    }
   }
 
   function openEnglishPhraseEditor(id) {
@@ -319,6 +433,7 @@ TT.Learning = (function() {
           chinese: document.getElementById('english-phrase-chinese').value.trim(),
           source: document.getElementById('english-phrase-source').value.trim()
         };
+        expandedEnglishSources.add(updates.source);
         if (item) {
           TT.Store.updateItem('learning.englishPhrases', item.id, updates);
           TT.Utils.toast('修改已保存');
