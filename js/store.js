@@ -33,6 +33,7 @@ TT.Store = (function() {
     },
     learning: {
       englishSpeakingDates: [],
+      englishPhrases: [],
       baoyan: [],
       chuguo: [],
       keyan: []

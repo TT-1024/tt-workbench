@@ -193,6 +193,7 @@ TT.Learning = (function() {
     }
 
     html += `</div><div class="calendar-hint">完成当天口语练习后，点击日期打卡；再次点击可取消</div></div>`;
+    html += renderEnglishPhraseSpace();
     content.innerHTML = html;
 
     document.getElementById('english-cal-prev').onclick = () => {
@@ -213,6 +214,14 @@ TT.Learning = (function() {
         }
       };
     });
+
+    document.getElementById('english-phrase-add').onclick = () => openEnglishPhraseEditor();
+    content.querySelectorAll('.english-phrase-favorite').forEach(button => {
+      button.onclick = () => toggleEnglishPhraseFavorite(button.dataset.id);
+    });
+    content.querySelectorAll('.english-phrase-delete').forEach(button => {
+      button.onclick = () => deleteEnglishPhrase(button.dataset.id);
+    });
   }
 
   function toggleEnglishSpeakingDate(dateStr) {
@@ -221,6 +230,107 @@ TT.Learning = (function() {
     if (index === -1) dates.push(dateStr);
     else dates.splice(index, 1);
     TT.Store.setCollection('learning.englishSpeakingDates', dates);
+    renderEnglishCalendar(document.getElementById('learning-content'));
+  }
+
+  function renderEnglishPhraseSpace() {
+    const phrases = TT.Store.getCollection('learning.englishPhrases');
+    const sorted = [...phrases].sort((a, b) => {
+      if (!!a.favorite !== !!b.favorite) return a.favorite ? -1 : 1;
+      return String(b.createdAt || b.date || '').localeCompare(String(a.createdAt || a.date || ''));
+    });
+
+    return `
+      <section class="english-phrase-space">
+        <div class="english-phrase-header">
+          <div>
+            <h2>好词好句</h2>
+            <p>把视频里打动你的表达随手记下来</p>
+          </div>
+          <button class="btn btn-primary" id="english-phrase-add">${TT.Utils.icon('plus', 16)} 记一句</button>
+        </div>
+        ${sorted.length ? `
+          <div class="english-phrase-list">
+            ${sorted.map(item => `
+              <article class="glass-card english-phrase-card ${item.favorite ? 'favorite' : ''}">
+                <div class="english-phrase-main">
+                  <div class="english-phrase-quote">“${TT.Utils.escapeHtml(item.english)}”</div>
+                  ${item.chinese ? `<div class="english-phrase-meaning">${TT.Utils.escapeHtml(item.chinese)}</div>` : ''}
+                  <div class="english-phrase-meta">
+                    <span>${TT.Utils.escapeHtml(item.date || '')}</span>
+                    ${item.source ? `<span>来自 ${TT.Utils.escapeHtml(item.source)}</span>` : ''}
+                  </div>
+                </div>
+                <div class="english-phrase-actions">
+                  <button class="task-action-btn english-phrase-favorite ${item.favorite ? 'is-favorite' : ''}" data-id="${item.id}" aria-label="${item.favorite ? '取消收藏' : '收藏'}">${TT.Utils.icons.star}</button>
+                  <button class="task-action-btn delete english-phrase-delete" data-id="${item.id}" aria-label="删除">${TT.Utils.icons.trash}</button>
+                </div>
+              </article>
+            `).join('')}
+          </div>
+        ` : `
+          <div class="glass-card english-phrase-empty">
+            <div>🎬</div>
+            <p>看视频遇到喜欢的表达，就从这里记下第一句吧</p>
+          </div>
+        `}
+      </section>
+    `;
+  }
+
+  function openEnglishPhraseEditor() {
+    const body = TT.Utils.createEl('div');
+    body.innerHTML = `
+      <div class="form-group">
+        <label class="form-label">英文原句</label>
+        <textarea class="form-textarea" id="english-phrase-text" placeholder="What a wonderful thought it is..." maxlength="500"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">我的理解（选填）</label>
+        <textarea class="form-textarea" id="english-phrase-chinese" placeholder="用自己的话写下中文理解" maxlength="500"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">视频来源（选填）</label>
+        <input class="form-input" id="english-phrase-source" placeholder="例如：TED · How to speak so people listen" maxlength="150">
+      </div>
+    `;
+
+    TT.Utils.modal({
+      title: '记录好词好句',
+      body,
+      confirmText: '保存',
+      onConfirm: () => {
+        const english = document.getElementById('english-phrase-text').value.trim();
+        if (!english) {
+          TT.Utils.toast('请先写下英文原句', 'error');
+          return false;
+        }
+        TT.Store.addItem('learning.englishPhrases', {
+          english,
+          chinese: document.getElementById('english-phrase-chinese').value.trim(),
+          source: document.getElementById('english-phrase-source').value.trim(),
+          date: TT.Utils.todayStr(),
+          favorite: false
+        });
+        TT.Utils.toast('已经帮你记下来了');
+        renderEnglishCalendar(document.getElementById('learning-content'));
+      }
+    });
+    setTimeout(() => document.getElementById('english-phrase-text').focus(), 100);
+  }
+
+  function toggleEnglishPhraseFavorite(id) {
+    const item = TT.Store.getCollection('learning.englishPhrases').find(entry => entry.id === id);
+    if (!item) return;
+    TT.Store.updateItem('learning.englishPhrases', id, { favorite: !item.favorite });
+    renderEnglishCalendar(document.getElementById('learning-content'));
+  }
+
+  async function deleteEnglishPhrase(id) {
+    const ok = await TT.Utils.confirm({ title: '删除这句话', text: '删除后将无法恢复。' });
+    if (!ok) return;
+    TT.Store.removeItem('learning.englishPhrases', id);
+    TT.Utils.toast('已删除');
     renderEnglishCalendar(document.getElementById('learning-content'));
   }
 

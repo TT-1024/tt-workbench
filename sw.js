@@ -1,5 +1,5 @@
 /* TT工作台 - Service Worker for offline support */
-const CACHE_NAME = 'tt-workbench-v32-mobile-refresh';
+const CACHE_NAME = 'tt-workbench-v33-mobile-english-phrases';
 const ASSETS = [
   './',
   './index.html',
