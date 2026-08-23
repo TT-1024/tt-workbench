@@ -279,6 +279,7 @@
         "updatedAt": "2026-08-23T10:13:09.627Z"
       }
     ],
+    "englishPhraseSources": [],
     "baoyan": [
       {
         "title": "保研人机构服务明细",
@@ -600,6 +601,15 @@
       "id": "mt2qp52727fzy5hvt",
       "createdAt": "2026-08-21T09:21:13.183Z",
       "updatedAt": "2026-08-21T09:21:40.135Z"
+    },
+    {
+      "date": "2026-08-22",
+      "usageCorrections": "1. achieve great success 取得巨大成就\n2. improve academic ability 提升学术能力\n3. proceed PhD abroad 继续攻读博士",
+      "expressionNotes": "1. 放慢语速\n2. 举个例子具体说明",
+      "questionAnswers": "-为什么选择浙江大学？\n- There are several main reasons. First, zju offers well-established research platforms, including access to high-level experimental resources. Second, it’s close to my home, which is super convenient for me. Third, I’ve already contacted with a potential mentor whose research direction really matches my interests. Finally, I prefer younger faculty members who are often highly-motivated to bring more energy and momentum to the whole group.",
+      "category": "英语口语",
+      "id": "mt5zwlxvko7ujd50p",
+      "createdAt": "2026-08-23T16:02:16.723Z"
     }
   ],
   "food": {
