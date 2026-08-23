@@ -86,6 +86,13 @@
         "id": "mt327kvvu8euaxpwi",
         "createdAt": "2026-08-21T14:43:29.275Z",
         "updatedAt": "2026-08-23T08:56:11.750Z"
+      },
+      {
+        "title": "记录今日昨天实验",
+        "date": "2026-08-23",
+        "completed": false,
+        "id": "mt5zcgsyekldrrbv7",
+        "createdAt": "2026-08-23T15:46:36.946Z"
       }
     ],
     "weekly": [
@@ -117,10 +124,11 @@
         "title": "明场分析自主研究",
         "date": "",
         "note": "学习：深度学习 ai影像处理",
-        "progress": 0,
+        "progress": 10,
         "completed": false,
         "id": "mspmi30xql3rnf71u",
-        "createdAt": "2026-08-12T05:02:45.201Z"
+        "createdAt": "2026-08-12T05:02:45.201Z",
+        "updatedAt": "2026-08-23T15:47:34.170Z"
       },
       {
         "title": "约zwt了解浙大生医工、浙大直博、专硕",
@@ -129,7 +137,8 @@
         "progress": 0,
         "completed": false,
         "id": "mspp0p6mjjnt2rth3",
-        "createdAt": "2026-08-12T06:13:12.958Z"
+        "createdAt": "2026-08-12T06:13:12.958Z",
+        "updatedAt": "2026-08-23T15:47:35.118Z"
       }
     ],
     "habits": []
