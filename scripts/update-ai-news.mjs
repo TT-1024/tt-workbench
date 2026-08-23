@@ -1,4 +1,4 @@
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 
 const OUTPUT_FILE = new URL('../ai-news.json', import.meta.url);
 const MAX_NEWS = 8;
@@ -67,6 +67,22 @@ async function translate(text) {
     translated.push((payload[0] || []).map(part => part[0] || '').join(''));
   }
   return translated.join('').replace(/\s+/g, ' ').trim();
+}
+
+async function translateArticle(title, body) {
+  const marker = 'TTARTICLESTART';
+  const combined = `${title}\n${marker}\n${body.slice(0, 2500)}`;
+  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-CN&dt=t&q=${encodeURIComponent(combined)}`;
+  const payload = JSON.parse(await fetchText(url, 18000));
+  const translated = (payload[0] || []).map(part => part[0] || '').join('').replace(/\s+/g, ' ').trim();
+  const markerIndex = translated.indexOf(marker);
+  if (markerIndex === -1) {
+    return { title: await translate(title), body: translated };
+  }
+  return {
+    title: translated.slice(0, markerIndex).trim(),
+    body: translated.slice(markerIndex + marker.length).trim()
+  };
 }
 
 function shorten(text, maxLength) {
@@ -139,10 +155,9 @@ async function articleToNews(candidate, date, index) {
   const markdown = await fetchText(readerUrl);
   const original = cleanMarkdown(markdown).slice(0, 4200);
   if (original.length < 450) throw new Error(`Article too short: ${candidate.url}`);
-  const [title, translatedBody] = await Promise.all([
-    translate(candidate.title),
-    translate(original.slice(0, 2300))
-  ]);
+  const translated = await translateArticle(candidate.title, original);
+  const title = translated.title;
+  const translatedBody = translated.body;
   const summary = shorten(translatedBody, 720);
   const overview = shorten(summary, 300);
   const category = categoryFor(`${candidate.title} ${title}`);
@@ -166,6 +181,16 @@ async function articleToNews(candidate, date, index) {
 
 async function main() {
   const date = shanghaiYesterday();
+  if (!process.argv.includes('--force')) {
+    try {
+      const existing = JSON.parse(await readFile(OUTPUT_FILE, 'utf8'));
+      if (existing.date === date && Array.isArray(existing.items) && existing.items.length >= 4) {
+        console.log(`AI news for ${date} is already complete; nothing to update`);
+        return;
+      }
+    } catch {}
+  }
+
   const start = Math.floor(new Date(`${date}T00:00:00+08:00`).getTime() / 1000);
   const filters = `created_at_i>=${start},created_at_i<${start + 86400}`;
   const endpoint = `https://hn.algolia.com/api/v1/search_by_date?query=AI&tags=story&hitsPerPage=100&numericFilters=${encodeURIComponent(filters)}`;
