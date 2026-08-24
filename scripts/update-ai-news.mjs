@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 const OUTPUT_FILE = new URL('../ai-news.json', import.meta.url);
 const MAX_NEWS = 8;
+const MIN_NEWS = 5;
 
 function shanghaiYesterday() {
   const now = new Date();
@@ -25,64 +26,121 @@ async function fetchText(url, timeoutMs = 20000) {
   }
 }
 
-function cleanMarkdown(raw) {
-  const content = raw.split('Markdown Content:').slice(1).join('Markdown Content:') || raw;
-  return content
-    .split('\n')
-    .filter(line => (line.match(/\|/g) || []).length < 3)
-    .filter(line => !/^\s*(Title|URL Source|Published Time):/i.test(line))
-    .join(' ')
-    .replace(/```[\s\S]*?```/g, ' ')
+function cleanLine(line) {
+  return line
     .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/^[-*]>?\s+/gm, '')
+    .replace(/\[\]\([^)]*/g, ' ')
+    .replace(/^#{1,6}\s+/, '')
+    .replace(/^[-*]>?\s+/, '')
     .replace(/https?:\/\/\S+/g, ' ')
     .replace(/[_*`>#]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
-function splitText(text, maxLength = 1150) {
-  const chunks = [];
-  let rest = text;
-  while (rest.length) {
-    let end = Math.min(maxLength, rest.length);
-    if (end < rest.length) {
-      const boundary = Math.max(rest.lastIndexOf('. ', end), rest.lastIndexOf('。', end));
-      if (boundary > maxLength * 0.55) end = boundary + 1;
-    }
-    chunks.push(rest.slice(0, end));
-    rest = rest.slice(end).trim();
+function extractArticleText(raw, title, articleDate) {
+  const content = raw.split('Markdown Content:').slice(1).join('Markdown Content:') || raw;
+  const lines = content.split('\n');
+  const titleKey = title.replace(/\s+/g, '').slice(0, 14);
+  const titleIndex = lines.findIndex(line => cleanLine(line).replace(/\s+/g, '').includes(titleKey));
+  const bodyLines = lines.slice(titleIndex >= 0 ? titleIndex + 1 : 0);
+  const boilerplate = /登录|注册|下载.*客户端|扫码|分享.*微博|收藏本页|字体|播放|静音|媒体流|节目段落|关闭描述|弹窗|热榜|举报热线|网站地图|责任编辑|编辑[:：]|上一篇|下一篇/;
+  const footer = /更多精彩|版权声明|制作单位|版权所有|^新华视点丨|^追光丨|^特写丨|^国际观察丨|^热点问答丨/;
+  const cleaned = bodyLines
+    .filter(line => (line.match(/\]\(/g) || []).length < 3)
+    .filter(line => (line.match(/\|/g) || []).length < 3)
+    .map(cleanLine)
+    .filter(line => !boilerplate.test(line))
+    .filter(line => (line.match(/[\u4e00-\u9fff]/g) || []).length >= 18);
+  const paragraphs = [];
+  let length = 0;
+  for (const line of cleaned) {
+    if (length >= 180 && footer.test(line)) break;
+    const laterDate = line.match(/20\d{2}-\d{2}-\d{2}/g)?.some(date => date > articleDate);
+    if (length >= 180 && laterDate) break;
+    paragraphs.push(line);
+    length += line.length;
   }
-  return chunks;
+  return paragraphs.join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-async function translate(text) {
-  if (!text || /[\u4e00-\u9fff]/.test(text.slice(0, 120))) return text;
-  const translated = [];
-  for (const chunk of splitText(text)) {
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-CN&dt=t&q=${encodeURIComponent(chunk)}`;
-    const payload = JSON.parse(await fetchText(url, 15000));
-    translated.push((payload[0] || []).map(part => part[0] || '').join(''));
-  }
-  return translated.join('').replace(/\s+/g, ' ').trim();
+function decodeEntities(text = '') {
+  const named = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+  return text
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+    .replace(/&(#x?[0-9a-f]+|\w+);/gi, (match, entity) => {
+      if (entity[0] === '#') {
+        const radix = entity[1]?.toLowerCase() === 'x' ? 16 : 10;
+        const value = parseInt(entity.slice(radix === 16 ? 2 : 1), radix);
+        return Number.isFinite(value) ? String.fromCodePoint(value) : match;
+      }
+      return named[entity.toLowerCase()] ?? match;
+    });
 }
 
-async function translateArticle(title, body) {
-  const marker = 'TTARTICLESTART';
-  const combined = `${title}\n${marker}\n${body.slice(0, 2500)}`;
-  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-CN&dt=t&q=${encodeURIComponent(combined)}`;
-  const payload = JSON.parse(await fetchText(url, 18000));
-  const translated = (payload[0] || []).map(part => part[0] || '').join('').replace(/\s+/g, ' ').trim();
-  const markerIndex = translated.indexOf(marker);
-  if (markerIndex === -1) {
-    return { title: await translate(title), body: translated };
+function tagValue(xml, tag) {
+  return decodeEntities(xml.match(new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, 'i'))?.[1] || '').trim();
+}
+
+function parseGoogleNewsFeed(xml) {
+  return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)].map(([, item]) => ({
+    title: tagValue(item, 'title').replace(/\s+-\s+[^-]+$/, '').trim(),
+    googleUrl: tagValue(item, 'link'),
+    sourceName: tagValue(item, 'source') || 'Google 新闻',
+    publishedAt: tagValue(item, 'pubDate')
+  }));
+}
+
+function shanghaiDate(value) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(new Date(value));
+  const get = type => parts.find(part => part.type === type)?.value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+
+const GOOGLE_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/129 Safari/537.36',
+  'Accept-Language': 'en-US,en;q=0.9'
+};
+
+async function decodeGoogleNewsUrl(sourceUrl) {
+  const base64 = new URL(sourceUrl).pathname.split('/').filter(Boolean).pop();
+  if (!base64) throw new Error('Invalid Google News URL');
+  const articleResponse = await fetch(`https://news.google.com/rss/articles/${base64}`, { headers: GOOGLE_HEADERS });
+  if (!articleResponse.ok) throw new Error(`${articleResponse.status} Google News article`);
+  const html = await articleResponse.text();
+  const timestamp = html.match(/data-n-a-ts="([^"]+)"/)?.[1];
+  const signature = html.match(/data-n-a-sg="([^"]+)"/)?.[1];
+  if (!timestamp || !signature) throw new Error('Missing Google News decoding parameters');
+
+  const payload = [
+    'Fbv4je',
+    `["garturlreq",[["X","X",["X","X"],null,null,1,1,"US:en",null,1,null,null,null,null,null,0,1],"X","X",1,[1,1,1],1,1,null,0,0,null,0],"${base64}",${timestamp},"${signature}"]`
+  ];
+  const response = await fetch('https://news.google.com/_/DotsSplashUi/data/batchexecute', {
+    method: 'POST',
+    headers: {
+      ...GOOGLE_HEADERS,
+      'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+      Origin: 'https://news.google.com',
+      Referer: 'https://news.google.com/'
+    },
+    body: `f.req=${encodeURIComponent(JSON.stringify([[payload]]))}`
+  });
+  if (!response.ok) throw new Error(`${response.status} Google News decoder`);
+  const text = await response.text();
+  for (const chunk of text.split('\n\n')) {
+    try {
+      const rows = JSON.parse(chunk);
+      const row = rows.find(entry => ['wrb.fr', 'w779db'].includes(entry[0]) && entry[1] === 'Fbv4je');
+      if (row) return JSON.parse(row[2])[1];
+    } catch {}
   }
-  return {
-    title: translated.slice(0, markerIndex).trim(),
-    body: translated.slice(markerIndex + marker.length).trim()
-  };
+  throw new Error('Google News decoder returned no original URL');
 }
 
 function shorten(text, maxLength) {
@@ -91,6 +149,16 @@ function shorten(text, maxLength) {
   const slice = clean.slice(0, maxLength);
   const boundary = Math.max(slice.lastIndexOf('。'), slice.lastIndexOf('！'), slice.lastIndexOf('？'));
   return `${slice.slice(0, boundary > maxLength * 0.55 ? boundary + 1 : maxLength)}…`;
+}
+
+function titlesOverlap(a, b, width = 10) {
+  const left = a.replace(/[^\u4e00-\u9fffA-Za-z0-9]/g, '');
+  const right = b.replace(/[^\u4e00-\u9fffA-Za-z0-9]/g, '');
+  if (left.length < width || right.length < width) return false;
+  for (let index = 0; index <= left.length - width; index += 1) {
+    if (right.includes(left.slice(index, index + width))) return true;
+  }
+  return false;
 }
 
 function categoryFor(text) {
@@ -151,19 +219,19 @@ function keywordsFor(category) {
 }
 
 async function articleToNews(candidate, date, index) {
-  const readerUrl = `https://r.jina.ai/http://${candidate.url.replace(/^https?:\/\//, '')}`;
+  const originalUrl = await decodeGoogleNewsUrl(candidate.googleUrl);
+  const readerUrl = `https://r.jina.ai/http://${originalUrl.replace(/^https?:\/\//, '')}`;
   const markdown = await fetchText(readerUrl);
-  const original = cleanMarkdown(markdown).slice(0, 4200);
-  if (original.length < 450) throw new Error(`Article too short: ${candidate.url}`);
-  const translated = await translateArticle(candidate.title, original);
-  const title = translated.title;
-  const translatedBody = translated.body;
-  const summary = shorten(translatedBody, 720);
+  const original = extractArticleText(markdown, candidate.title, date).slice(0, 4200);
+  if (original.length < 260) throw new Error(`Article too short: ${originalUrl}`);
+  if (!/[\u4e00-\u9fff]/.test(original.slice(0, 1000))) throw new Error(`Article is not Chinese: ${originalUrl}`);
+  const title = candidate.title;
+  const summary = shorten(original, 780);
   const overview = shorten(summary, 300);
   const category = categoryFor(`${candidate.title} ${title}`);
   const explanations = buildExplanations(category, title, overview);
-  let sourceName = '新闻原文';
-  try { sourceName = new URL(candidate.url).hostname.replace(/^www\./, ''); } catch {}
+  let sourceName = candidate.sourceName || '新闻原文';
+  try { sourceName ||= new URL(originalUrl).hostname.replace(/^www\./, ''); } catch {}
   return {
     id: `daily-${date}-${index + 1}`,
     title,
@@ -174,7 +242,7 @@ async function articleToNews(candidate, date, index) {
     beginner: explanations.beginner,
     why: explanations.why,
     keywords: keywordsFor(category),
-    source: candidate.url,
+    source: originalUrl,
     sourceName
   };
 }
@@ -191,34 +259,32 @@ async function main() {
     } catch {}
   }
 
-  const start = Math.floor(new Date(`${date}T00:00:00+08:00`).getTime() / 1000);
-  const filters = `created_at_i>=${start},created_at_i<${start + 86400}`;
-  const endpoint = `https://hn.algolia.com/api/v1/search_by_date?query=AI&tags=story&hitsPerPage=100&numericFilters=${encodeURIComponent(filters)}`;
-  const payload = JSON.parse(await fetchText(endpoint));
-  const aiPattern = /\b(AI|LLM|OpenAI|Anthropic|Gemini|Claude|ChatGPT|machine learning|artificial intelligence|neural|language model|AI agent)\b/i;
+  const query = '("生成式人工智能" OR "大模型" OR "AI智能体" OR OpenAI OR Anthropic OR Claude OR Gemini OR "人工智能") when:2d';
+  const endpoint = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=zh-CN&gl=CN&ceid=CN:zh-Hans`;
+  const candidates = parseGoogleNewsFeed(await fetchText(endpoint))
+    .filter(item => item.title && item.googleUrl && item.publishedAt)
+    .filter(item => shanghaiDate(item.publishedAt) === date)
+    .filter(item => !/概念股|ETF|股票|股价|涨停|跌超|指数|行情|收盘|基金|培训班|招生|招聘|彩票/i.test(item.title));
   const seen = new Set();
-  const candidates = (payload.hits || [])
-    .filter(item => item.title && item.url && aiPattern.test(`${item.title} ${item.url}`))
-    .filter(item => !/^(Show|Ask) HN:/i.test(item.title))
-    .filter(item => {
+  const uniqueCandidates = candidates.filter(item => {
       const key = item.title.toLowerCase();
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
-    })
-    .sort((a, b) => ((b.points || 0) + (b.num_comments || 0) * 2) - ((a.points || 0) + (a.num_comments || 0) * 2));
+    });
 
   const items = [];
-  for (const candidate of candidates.slice(0, 18)) {
+  for (const candidate of uniqueCandidates.slice(0, 30)) {
     if (items.length >= MAX_NEWS) break;
+    if (items.some(item => titlesOverlap(item.title, candidate.title))) continue;
     try {
       items.push(await articleToNews(candidate, date, items.length));
     } catch (error) {
-      console.warn(`Skipped ${candidate.url}: ${error.message}`);
+      console.warn(`Skipped ${candidate.googleUrl}: ${error.message}`);
     }
   }
-  if (items.length < 4) throw new Error(`Only generated ${items.length} usable news items`);
-  const result = { date, generatedAt: new Date().toISOString(), source: 'Hacker News + original articles', items };
+  if (items.length < MIN_NEWS) throw new Error(`Only generated ${items.length} usable news items`);
+  const result = { date, generatedAt: new Date().toISOString(), source: 'Google 新闻中文聚合 + 媒体原文', items };
   await writeFile(OUTPUT_FILE, `${JSON.stringify(result, null, 2)}\n`, 'utf8');
   console.log(`Generated ${items.length} AI news items for ${date}`);
 }
