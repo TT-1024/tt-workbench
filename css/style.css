@@ -2672,13 +2672,23 @@ body {
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid var(--glass-border-subtle);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 12px;
+  align-items: start;
 }
 .conversation-card-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 4px;
-  margin-bottom: 8px;
+  grid-column: 2;
+  grid-row: 1;
+  margin-top: 2px;
+}
+.conversation-card-details > .conversation-card-content,
+.conversation-card-details > .conversation-english-sections {
+  grid-column: 1;
+  grid-row: 1;
 }
 .conversation-card-date {
   font-size: 12px;
