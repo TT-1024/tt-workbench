@@ -340,6 +340,24 @@
         "id": "mt6zwgkjszyepsws4",
         "createdAt": "2026-08-24T08:49:55.939Z",
         "updatedAt": "2026-08-24T08:50:27.511Z"
+      },
+      {
+        "english": "Deep learning has gotten very good at predicting whether or not you click on an ad.",
+        "chinese": "深度学习在预测方面已经表现得非常好了。\n固定句型：xxx has gotten very good at xxx",
+        "source": "deeplearning",
+        "date": "2026-08-24",
+        "favorite": false,
+        "id": "mt7036kxxi91b1vtw",
+        "createdAt": "2026-08-24T08:55:09.585Z"
+      },
+      {
+        "english": "has made huge strides",
+        "chinese": "取得了巨大进展",
+        "source": "deeplearning",
+        "date": "2026-08-24",
+        "favorite": false,
+        "id": "mt706mcrsv60caepp",
+        "createdAt": "2026-08-24T08:57:49.995Z"
       }
     ],
     "englishPhraseSources": [
