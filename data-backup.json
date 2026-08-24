@@ -358,6 +358,24 @@
         "favorite": false,
         "id": "mt706mcrsv60caepp",
         "createdAt": "2026-08-24T08:57:49.995Z"
+      },
+      {
+        "english": "come one at a time",
+        "chinese": "逐个出现的",
+        "source": "deeplearning",
+        "date": "2026-08-24",
+        "favorite": false,
+        "id": "mt70b308dzku5h3gv",
+        "createdAt": "2026-08-24T09:01:18.200Z"
+      },
+      {
+        "english": "it has been much harder for computers to make sense of unstructured data compared to structured data.",
+        "chinese": "Make sense of：理解",
+        "source": "deeplearning",
+        "date": "2026-08-24",
+        "favorite": false,
+        "id": "mt70jvs9iq0zc44me",
+        "createdAt": "2026-08-24T09:08:08.745Z"
       }
     ],
     "englishPhraseSources": [
