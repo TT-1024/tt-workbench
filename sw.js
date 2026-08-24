@@ -1,5 +1,5 @@
 /* TT工作台 - Service Worker for offline support */
-const CACHE_NAME = 'tt-workbench-v40-conversation-actions';
+const CACHE_NAME = 'tt-workbench-v41-conversation-toggle-fix';
 const ASSETS = [
   './',
   './index.html',

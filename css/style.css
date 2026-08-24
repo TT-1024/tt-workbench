@@ -2677,6 +2677,9 @@ body {
   column-gap: 12px;
   align-items: start;
 }
+.conversation-card-details[hidden] {
+  display: none;
+}
 .conversation-card-actions {
   display: flex;
   align-items: center;
