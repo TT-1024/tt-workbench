@@ -296,7 +296,9 @@
         "updatedAt": "2026-08-23T10:13:09.627Z"
       }
     ],
-    "englishPhraseSources": [],
+    "englishPhraseSources": [
+      "deeplearning"
+    ],
     "baoyan": [
       {
         "title": "保研人机构服务明细",
