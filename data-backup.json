@@ -387,13 +387,14 @@
         "createdAt": "2026-08-24T09:11:33.730Z"
       },
       {
-        "english": "We’re gonna explain why it’s only quite recently that neural networks become popular.",
+        "english": "We’re gonna explain why it’s only quite recently that neural networks become popular.\nWhy are they only just now taking off?",
         "chinese": "解释为什么是最近 神经网络才流行起来\n固定句型：why it’s only quite recently that xxxx",
         "source": "deeplearning",
         "date": "2026-08-24",
         "favorite": false,
         "id": "mt70t64x6r9y78mjq",
-        "createdAt": "2026-08-24T09:15:22.065Z"
+        "createdAt": "2026-08-24T09:15:22.065Z",
+        "updatedAt": "2026-08-24T09:16:22.289Z"
       }
     ],
     "englishPhraseSources": [
