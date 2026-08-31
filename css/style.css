@@ -2472,6 +2472,16 @@ body {
   box-shadow: 0 3px 10px rgba(10, 132, 255, 0.25);
 }
 
+.podcast-category-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 2px 0;
+}
+.podcast-category-choice {
+  min-height: 36px;
+}
+
 .podcast-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));

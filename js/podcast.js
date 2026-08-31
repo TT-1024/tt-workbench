@@ -146,13 +146,30 @@ TT.Podcast = (function() {
   function openEditor(id) {
     const notes = TT.Store.getCollection('podcasts');
     const note = id ? notes.find(n => n.id === id) : null;
-    const category = note ? note.category : currentCategory;
+    const categories = TT.Store.getData().podcastCategories || [];
+    let selectedCategory = (note && note.category) || currentCategory || categories[0] || '未分类';
+    const categoryOptions = categories.includes(selectedCategory)
+      ? categories
+      : [selectedCategory, ...categories];
 
     const body = TT.Utils.createEl('div');
     body.innerHTML = `
       <div class="form-group">
         <label class="form-label">标题</label>
         <input type="text" class="form-input" id="podcast-title" value="${note ? TT.Utils.escapeHtml(note.title) : ''}" maxlength="100">
+      </div>
+      <div class="form-group">
+        <label class="form-label">分类</label>
+        <div class="podcast-category-picker" id="podcast-category-picker" role="group" aria-label="选择感悟分类">
+          ${categoryOptions.map(category => `
+            <button
+              type="button"
+              class="category-chip podcast-category-choice ${selectedCategory === category ? 'active' : ''}"
+              data-podcast-category="${TT.Utils.escapeHtml(category)}"
+              aria-pressed="${selectedCategory === category ? 'true' : 'false'}"
+            >${TT.Utils.escapeHtml(category)}</button>
+          `).join('')}
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">正文内容</label>
@@ -168,6 +185,17 @@ TT.Podcast = (function() {
       </div>
     `;
 
+    body.querySelectorAll('[data-podcast-category]').forEach(btn => {
+      btn.onclick = () => {
+        selectedCategory = btn.dataset.podcastCategory;
+        body.querySelectorAll('[data-podcast-category]').forEach(option => {
+          const isSelected = option === btn;
+          option.classList.toggle('active', isSelected);
+          option.setAttribute('aria-pressed', String(isSelected));
+        });
+      };
+    });
+
     TT.Utils.modal({
       title: id ? '编辑感悟' : '新建感悟',
       size: 'lg',
@@ -181,10 +209,14 @@ TT.Podcast = (function() {
 
         if (!title && !content) { TT.Utils.toast('请输入标题或内容', 'error'); return false; }
 
-        const data = { title: title || '无标题', content, category, date, source };
+        const data = { title: title || '无标题', content, category: selectedCategory, date, source };
         if (id) {
           TT.Store.updateItem('podcasts', id, data);
-          TT.Utils.toast('已保存');
+          if (note.category !== selectedCategory) {
+            TT.Utils.toast(`已从「${note.category || '未分类'}」移动到「${selectedCategory}」`);
+          } else {
+            TT.Utils.toast('已保存');
+          }
         } else {
           TT.Store.addItem('podcasts', data);
           TT.Utils.toast('感悟已记录');

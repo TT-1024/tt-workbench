@@ -1,5 +1,5 @@
 /* TT工作台 - Service Worker for offline support */
-const CACHE_NAME = 'tt-workbench-v41-conversation-toggle-fix';
+const CACHE_NAME = 'tt-workbench-v42-podcast-category-picker';
 const ASSETS = [
   './',
   './index.html',
