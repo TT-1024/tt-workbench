@@ -9,6 +9,7 @@ TT.Podcast = (function() {
   let currentCategory = '';
   let searchQuery = '';
   let fabElement = null;
+  const expandedNotes = new Set();
 
   function categoryColorIndex(category) {
     const value = category || '未分类';
@@ -122,24 +123,45 @@ TT.Podcast = (function() {
       return;
     }
 
-    grid.innerHTML = notes.map((note, i) => `
-      <div class="glass-card podcast-card stagger-item" style="animation-delay:${i * 0.05}s" data-id="${note.id}">
-        <div class="podcast-card-actions">
-          <button class="task-action-btn" onclick="event.stopPropagation();TT.Podcast.editNote('${note.id}')">${TT.Utils.icons.edit}</button>
-          <button class="task-action-btn delete" onclick="event.stopPropagation();TT.Podcast.deleteNote('${note.id}')">${TT.Utils.icons.trash}</button>
+    grid.innerHTML = notes.map((note, i) => {
+      const isExpanded = expandedNotes.has(note.id);
+      return `
+      <div class="glass-card podcast-card stagger-item ${isExpanded ? 'is-expanded' : ''}" style="animation-delay:${i * 0.05}s" data-id="${note.id}">
+        <div class="podcast-card-summary">
+          <span class="podcast-card-category cat-color-${categoryColorIndex(note.category)}">${TT.Utils.escapeHtml(note.category || '未分类')}</span>
+          <div class="podcast-card-date" title="日期">
+            ${TT.Utils.icons.clock}<span>${TT.Utils.formatDate(note.date || note.createdAt)}</span>
+          </div>
+          <div class="podcast-card-title" title="${TT.Utils.escapeHtml(note.title || '无标题')}">${TT.Utils.escapeHtml(note.title || '无标题')}</div>
+          <button class="podcast-card-toggle" type="button" aria-expanded="${isExpanded}" aria-label="${isExpanded ? '收起' : '展开'}感悟记录">
+            ${TT.Utils.icons.chevronDown}
+          </button>
         </div>
-        <span class="podcast-card-category cat-color-${categoryColorIndex(note.category)}">${TT.Utils.escapeHtml(note.category || '未分类')}</span>
-        <div class="podcast-card-title">${TT.Utils.escapeHtml(note.title || '无标题')}</div>
-        <div class="podcast-card-preview">${TT.Utils.escapeHtml(note.content || '')}</div>
-        ${note.source ? `<div class="podcast-card-source">${TT.Utils.icons.link || ''} 来源：${TT.Utils.escapeHtml(note.source)}</div>` : ''}
-        <div class="podcast-card-date">
-          ${TT.Utils.icons.clock} ${TT.Utils.formatDate(note.date || note.createdAt)}
+        <div class="podcast-card-details" ${isExpanded ? '' : 'hidden'}>
+          <div class="podcast-card-details-main">
+            ${note.content
+              ? `<div class="podcast-card-preview">${TT.Utils.escapeHtml(note.content).replace(/\n/g, '<br>')}</div>`
+              : '<div class="podcast-card-preview podcast-card-preview-empty">暂无感悟内容</div>'}
+            ${note.source ? `<div class="podcast-card-source">${TT.Utils.icons.link || ''} 来源：${TT.Utils.escapeHtml(note.source)}</div>` : ''}
+          </div>
+          <div class="podcast-card-detail-actions">
+            <button class="task-action-btn podcast-edit-btn" type="button" title="编辑感悟">${TT.Utils.icons.edit}</button>
+            <button class="task-action-btn delete podcast-delete-btn" type="button" title="删除感悟">${TT.Utils.icons.trash}</button>
+          </div>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     grid.querySelectorAll('.podcast-card').forEach(card => {
-      card.onclick = () => TT.Podcast.editNote(card.dataset.id);
+      const id = card.dataset.id;
+      card.querySelector('.podcast-card-toggle').onclick = () => {
+        if (expandedNotes.has(id)) expandedNotes.delete(id);
+        else expandedNotes.add(id);
+        renderGrid();
+      };
+      card.querySelector('.podcast-edit-btn')?.addEventListener('click', () => openEditor(id));
+      card.querySelector('.podcast-delete-btn')?.addEventListener('click', () => deleteNote(id));
     });
   }
 
@@ -306,6 +328,7 @@ TT.Podcast = (function() {
     const ok = await TT.Utils.confirm({ title: '删除感悟', text: '此感悟将被永久删除。' });
     if (ok) {
       TT.Store.removeItem('podcasts', id);
+      expandedNotes.delete(id);
       TT.Utils.toast('已删除');
       TT.App.renderSidebar();
       renderGrid();
