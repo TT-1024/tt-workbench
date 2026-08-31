@@ -6,6 +6,7 @@
 window.TT = window.TT || {};
 
 TT.Planning = (function() {
+  const COMPLETED_TASK_RETENTION_MS = 3 * 24 * 60 * 60 * 1000;
 
   function render(container) {
     container.innerHTML = `
@@ -24,12 +25,42 @@ TT.Planning = (function() {
 
   function renderGrid() {
     const grid = document.getElementById('planning-grid');
+    cleanupCompletedTasks();
     grid.innerHTML = '';
 
     grid.appendChild(renderDailyCard());
     grid.appendChild(renderWeeklyCard());
     grid.appendChild(renderLongtermCard());
     grid.appendChild(renderHabitsCard());
+  }
+
+  function cleanupCompletedTasks() {
+    const now = Date.now();
+
+    ['tasks.daily', 'tasks.weekly'].forEach(path => {
+      const tasks = TT.Store.getCollection(path);
+      let changed = false;
+
+      const remaining = tasks.filter(task => {
+        if (!task.completed) return true;
+
+        const completedAt = Date.parse(task.completedAt || '');
+        if (!Number.isFinite(completedAt)) {
+          task.completedAt = new Date(now).toISOString();
+          changed = true;
+          return true;
+        }
+
+        if (now - completedAt > COMPLETED_TASK_RETENTION_MS) {
+          changed = true;
+          return false;
+        }
+
+        return true;
+      });
+
+      if (changed) TT.Store.setCollection(path, remaining);
+    });
   }
 
   // ===== Daily Tasks =====
@@ -346,7 +377,11 @@ TT.Planning = (function() {
     const tasks = TT.Store.getCollection(path);
     const task = tasks.find(t => t.id === id);
     if (task) {
-      TT.Store.updateItem(path, id, { completed: !task.completed });
+      const completed = !task.completed;
+      TT.Store.updateItem(path, id, {
+        completed,
+        completedAt: completed ? new Date().toISOString() : null
+      });
       renderGrid();
     }
   }
