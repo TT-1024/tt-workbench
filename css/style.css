@@ -2016,12 +2016,21 @@ body {
 }
 .planning-task-card:hover { transform: translateY(-1px); background: rgba(255,255,255,.76); box-shadow: 0 9px 24px rgba(42,54,89,.08); }
 .planning-task-card.dragging { opacity: .28; transform: scale(.98); }
-.planning-task-card.completed { opacity: .48; }
+.planning-task-card.completed { opacity: 1; }
+.planning-task-card.completed .planning-task-main { opacity: .48; }
 .planning-task-card.completed .task-title { text-decoration: line-through; color: var(--text-tertiary); }
 .planning-task-card.importance-1 { --importance-color: var(--accent-green); }
 .planning-task-card.importance-2 { --importance-color: var(--accent-orange); }
 .planning-task-card.importance-3 { --importance-color: var(--accent-red); }
 .planning-task-main { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+.planning-task-card .task-actions { opacity: 1; flex-shrink: 0; }
+.planning-task-card .task-action-btn {
+  width: 30px;
+  height: 30px;
+  background: rgba(255,255,255,.46);
+}
+.planning-task-card .task-action-btn:hover { color: var(--accent-blue); background: var(--cat-blue-bg); }
+.planning-task-card .task-action-btn.delete:hover { color: var(--accent-red); background: rgba(255,69,58,.10); }
 .planning-task-copy { min-width: 0; }
 .planning-task-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 7px; }
 .planning-task-meta .task-date { margin: 0; display: inline-flex; align-items: center; gap: 3px; }
@@ -4005,6 +4014,8 @@ body {
   .planning-new-task-btn svg { margin: 0; }
   .planning-new-task-btn { font-size: 0; }
   .planning-choice-row { grid-template-columns: 1fr 1fr; }
+  .planning-task-card .task-actions { gap: 4px; }
+  .planning-task-card .task-action-btn { width: 34px; height: 34px; }
 
   .sidebar {
     position: fixed;
