@@ -1,5 +1,5 @@
 /* TT工作台 - Service Worker for offline support */
-const CACHE_NAME = 'tt-workbench-v43-podcast-collapse';
+const CACHE_NAME = 'tt-workbench-v44-quadrant-board';
 const ASSETS = [
   './',
   './index.html',

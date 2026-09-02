@@ -7,6 +7,12 @@ window.TT = window.TT || {};
 
 TT.Planning = (function() {
   const COMPLETED_TASK_RETENTION_MS = 3 * 24 * 60 * 60 * 1000;
+  const QUADRANTS = [
+    { id: 'urgent-focus', urgent: true, focus: true, title: '紧急 · 需要专注', subtitle: '现在优先，留出安静时间', tone: 'red' },
+    { id: 'calm-focus', urgent: false, focus: true, title: '不紧急 · 需要专注', subtitle: '重要推进，安排深度时间', tone: 'purple' },
+    { id: 'urgent-flex', urgent: true, focus: false, title: '紧急 · 随时可做', subtitle: '快速处理，尽快清空', tone: 'orange' },
+    { id: 'calm-flex', urgent: false, focus: false, title: '不紧急 · 随时可做', subtitle: '弹性安排，有空顺手完成', tone: 'blue' }
+  ];
 
   function render(container) {
     container.innerHTML = `
@@ -14,24 +20,27 @@ TT.Planning = (function() {
         <div class="page-header">
           <div class="page-title-group">
             <h1>计划</h1>
-            <p class="page-subtitle">管理你的每日、每周、长期目标与习惯</p>
+            <p class="page-subtitle">按紧急程度与专注环境安排任务，重要程度决定象限内顺序</p>
           </div>
+          <button class="btn btn-primary planning-new-task-btn" id="planning-new-task-btn">${TT.Utils.icons.plus} 新建任务</button>
         </div>
-        <div class="planning-grid" id="planning-grid"></div>
+        <div class="planning-board" id="planning-board"></div>
+        <div class="planning-support-grid" id="planning-support-grid"></div>
       </div>
     `;
     renderGrid();
   }
 
   function renderGrid() {
-    const grid = document.getElementById('planning-grid');
     cleanupCompletedTasks();
-    grid.innerHTML = '';
+    renderBoard();
 
-    grid.appendChild(renderDailyCard());
-    grid.appendChild(renderWeeklyCard());
-    grid.appendChild(renderLongtermCard());
-    grid.appendChild(renderHabitsCard());
+    const supportGrid = document.getElementById('planning-support-grid');
+    supportGrid.innerHTML = '';
+    supportGrid.appendChild(renderLongtermCard());
+    supportGrid.appendChild(renderHabitsCard());
+
+    document.getElementById('planning-new-task-btn').onclick = () => openTaskEditor();
   }
 
   function cleanupCompletedTasks() {
@@ -63,62 +72,134 @@ TT.Planning = (function() {
     });
   }
 
-  // ===== Daily Tasks =====
-  function renderDailyCard() {
-    const tasks = TT.Store.getCollection('tasks.daily');
-
-    const card = TT.Utils.createEl('div', {
-      class: 'glass-card planning-card stagger-item',
-      dataset: { type: 'daily' },
-      style: { animationDelay: '0s' }
-    });
-
-    card.innerHTML = `
-      <div class="card-header">
-        <div class="card-title">
-          <div class="card-title-icon">${TT.Utils.icons.calendar}</div>
-          每日待办
-        </div>
-        <button class="card-add-btn" id="add-daily-btn">${TT.Utils.icons.plus}</button>
-      </div>
-      <div class="card-body" id="daily-list"></div>
-    `;
-
-    setTimeout(() => {
-      renderTaskList('daily-list', 'tasks.daily', tasks);
-      document.getElementById('add-daily-btn').onclick = () => openTaskEditor('tasks.daily', 'daily');
-    }, 0);
-
-    return card;
+  function getBoardTasks() {
+    return ['tasks.daily', 'tasks.weekly'].flatMap(path =>
+      TT.Store.getCollection(path).map(task => ({
+        ...task,
+        _path: path,
+        urgent: typeof task.urgent === 'boolean' ? task.urgent : path === 'tasks.daily',
+        focus: typeof task.focus === 'boolean' ? task.focus : false,
+        importance: Number(task.importance) || 2
+      }))
+    );
   }
 
-  // ===== Weekly Tasks =====
-  function renderWeeklyCard() {
-    const tasks = TT.Store.getCollection('tasks.weekly');
+  function renderBoard() {
+    const board = document.getElementById('planning-board');
+    const tasks = getBoardTasks();
 
-    const card = TT.Utils.createEl('div', {
-      class: 'glass-card planning-card stagger-item',
-      dataset: { type: 'weekly' },
-      style: { animationDelay: '0.05s' }
+    board.innerHTML = QUADRANTS.map((quadrant, index) => {
+      const quadrantTasks = tasks
+        .filter(task => task.urgent === quadrant.urgent && task.focus === quadrant.focus)
+        .sort((a, b) => {
+          if (a.completed !== b.completed) return a.completed ? 1 : -1;
+          if (a.importance !== b.importance) return b.importance - a.importance;
+          return (a.date || '9999') > (b.date || '9999') ? 1 : -1;
+        });
+
+      return `
+        <section class="planning-quadrant planning-quadrant-${quadrant.tone} stagger-item" style="animation-delay:${index * 0.04}s">
+          <div class="planning-quadrant-header">
+            <div>
+              <div class="planning-quadrant-title">${TT.Utils.escapeHtml(quadrant.title)} <span>${quadrantTasks.length}</span></div>
+              <div class="planning-quadrant-subtitle">${TT.Utils.escapeHtml(quadrant.subtitle)}</div>
+            </div>
+            <button class="card-add-btn" data-add-quadrant="${quadrant.id}" aria-label="添加到${TT.Utils.escapeHtml(quadrant.title)}">${TT.Utils.icons.plus}</button>
+          </div>
+          <div class="planning-quadrant-body" data-quadrant-drop="${quadrant.id}">
+            ${renderTaskCards(quadrantTasks)}
+          </div>
+        </section>
+      `;
+    }).join('');
+
+    board.querySelectorAll('[data-add-quadrant]').forEach(button => {
+      button.onclick = () => {
+        const quadrant = QUADRANTS.find(item => item.id === button.dataset.addQuadrant);
+        openTaskEditor(null, null, quadrant);
+      };
     });
 
-    card.innerHTML = `
-      <div class="card-header">
-        <div class="card-title">
-          <div class="card-title-icon">${TT.Utils.icons.target}</div>
-          周待办
-        </div>
-        <button class="card-add-btn" id="add-weekly-btn">${TT.Utils.icons.plus}</button>
-      </div>
-      <div class="card-body" id="weekly-list"></div>
-    `;
+    board.querySelectorAll('.planning-task-card').forEach(card => {
+      card.addEventListener('dragstart', event => {
+        card.classList.add('dragging');
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', JSON.stringify({ path: card.dataset.path, id: card.dataset.id }));
+      });
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        board.querySelectorAll('[data-quadrant-drop]').forEach(zone => zone.classList.remove('drag-over'));
+      });
+    });
 
-    setTimeout(() => {
-      renderTaskList('weekly-list', 'tasks.weekly', tasks);
-      document.getElementById('add-weekly-btn').onclick = () => openTaskEditor('tasks.weekly', 'weekly');
-    }, 0);
+    board.querySelectorAll('[data-quadrant-drop]').forEach(zone => {
+      zone.addEventListener('dragover', event => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+        zone.classList.add('drag-over');
+      });
+      zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+      zone.addEventListener('drop', event => {
+        event.preventDefault();
+        zone.classList.remove('drag-over');
+        try {
+          const source = JSON.parse(event.dataTransfer.getData('text/plain'));
+          const quadrant = QUADRANTS.find(item => item.id === zone.dataset.quadrantDrop);
+          if (quadrant) moveTaskToQuadrant(source.path, source.id, quadrant);
+        } catch (error) {
+          console.warn('Unable to move task card', error);
+        }
+      });
+    });
+  }
 
-    return card;
+  function moveTaskToQuadrant(path, id, quadrant) {
+    const targetPath = quadrant.urgent ? 'tasks.daily' : 'tasks.weekly';
+    saveTaskToPath(path, targetPath, id, { urgent: quadrant.urgent, focus: quadrant.focus });
+    renderGrid();
+  }
+
+  function saveTaskToPath(sourcePath, targetPath, id, updates) {
+    const sourceTasks = TT.Store.getCollection(sourcePath);
+    const task = sourceTasks.find(item => item.id === id);
+    if (!task) return false;
+
+    if (targetPath === sourcePath) {
+      TT.Store.updateItem(sourcePath, id, updates);
+      return true;
+    }
+
+    const movedTask = { ...task, ...updates, updatedAt: new Date().toISOString() };
+    TT.Store.setCollection(sourcePath, sourceTasks.filter(item => item.id !== id));
+    TT.Store.setCollection(targetPath, [...TT.Store.getCollection(targetPath), movedTask]);
+    return true;
+  }
+
+  function renderTaskCards(tasks) {
+    if (tasks.length === 0) return `<div class="planning-empty-card">暂无任务，点击右上角＋添加</div>`;
+
+    return tasks.map((task, i) => {
+      const importance = Math.max(1, Math.min(3, task.importance));
+      const importanceLabel = ['', '低重要', '中重要', '高重要'][importance];
+      return `
+        <article class="planning-task-card importance-${importance} ${task.completed ? 'completed' : ''}" style="animation-delay:${i * 0.025}s" data-path="${task._path}" data-id="${task.id}" draggable="true" onclick="TT.Planning.toggleTask('${task._path}','${task.id}')">
+          <div class="planning-task-main">
+            <div class="task-checkbox ${task.completed ? 'checked' : ''}">${TT.Utils.icons.check}</div>
+            <div class="planning-task-copy">
+              <div class="task-title">${TT.Utils.escapeHtml(task.title)}</div>
+              <div class="planning-task-meta">
+                <span class="importance-badge importance-${importance}">${TT.Utils.icons.star} ${importanceLabel}</span>
+                ${task.date ? `<span class="task-date ${TT.Utils.isOverdue(task.date) && !task.completed ? 'overdue' : ''}">${TT.Utils.icons.clock} ${TT.Utils.relativeDate(task.date)}</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <div class="task-actions">
+            <button class="task-action-btn" onclick="event.stopPropagation();TT.Planning.editTask('${task._path}','${task.id}')" aria-label="编辑任务">${TT.Utils.icons.edit}</button>
+            <button class="task-action-btn delete" onclick="event.stopPropagation();TT.Planning.deleteTask('${task._path}','${task.id}')" aria-label="删除任务">${TT.Utils.icons.trash}</button>
+          </div>
+        </article>
+      `;
+    }).join('');
   }
 
   // ===== Long-term Goals =====
@@ -177,45 +258,6 @@ TT.Planning = (function() {
     }, 0);
 
     return card;
-  }
-
-  // ===== Render Task List =====
-  function renderTaskList(containerId, path, tasks) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
-    const sorted = [...tasks].sort((a, b) => {
-      if (a.completed !== b.completed) return a.completed ? 1 : -1;
-      return (a.date || '9999') > (b.date || '9999') ? 1 : -1;
-    });
-
-    if (sorted.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">${TT.Utils.icons.check}</div>
-          <div class="empty-state-text">暂无任务，点击 + 添加</div>
-        </div>
-      `;
-      return;
-    }
-
-    container.innerHTML = sorted.map((task, i) => `
-      <div class="task-item ${task.completed ? 'completed' : ''} stagger-item" style="animation-delay:${i * 0.03}s" data-id="${task.id}" onclick="TT.Planning.toggleTask('${path}','${task.id}')">
-        <div class="task-checkbox ${task.completed ? 'checked' : ''}">
-          ${TT.Utils.icons.check}
-        </div>
-        <div class="task-content">
-          <div class="task-title">${TT.Utils.escapeHtml(task.title)}</div>
-          ${task.date ? `<div class="task-meta"><span class="task-date ${TT.Utils.isOverdue(task.date) && !task.completed ? 'overdue' : ''}">
-            ${TT.Utils.icons.clock} ${TT.Utils.relativeDate(task.date)}
-          </span></div>` : ''}
-        </div>
-        <div class="task-actions">
-          <button class="task-action-btn" onclick="event.stopPropagation();TT.Planning.editTask('${path}','${task.id}')">${TT.Utils.icons.edit}</button>
-          <button class="task-action-btn delete" onclick="event.stopPropagation();TT.Planning.deleteTask('${path}','${task.id}')">${TT.Utils.icons.trash}</button>
-        </div>
-      </div>
-    `).join('');
   }
 
   // ===== Render Goal List =====
@@ -340,31 +382,71 @@ TT.Planning = (function() {
   }
 
   // ===== Task Editor =====
-  function openTaskEditor(path, type) {
-    const isDaily = type === 'daily';
-    const defaultDate = isDaily ? TT.Utils.todayStr() : '';
-
-    const body = TT.Utils.createEl('div');
-    body.innerHTML = `
+  function taskEditorContent(task, preset) {
+    const urgent = task ? (typeof task.urgent === 'boolean' ? task.urgent : task._path === 'tasks.daily') : (preset ? preset.urgent : true);
+    const focus = task ? Boolean(task.focus) : (preset ? preset.focus : true);
+    const importance = task ? (Number(task.importance) || 2) : 2;
+    return `
       <div class="form-group">
         <label class="form-label">任务名称</label>
-        <input type="text" class="form-input" id="task-title" placeholder="输入任务名称" maxlength="100">
+        <input type="text" class="form-input" id="task-title" placeholder="要完成什么？" value="${task ? TT.Utils.escapeHtml(task.title) : ''}" maxlength="100">
       </div>
       <div class="form-group">
         <label class="form-label">截止日期</label>
-        <input type="date" class="form-input" id="task-date" value="${defaultDate}">
+        <input type="date" class="form-input" id="task-date" value="${task ? (task.date || '') : ''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">是否紧急</label>
+        <div class="planning-choice-row">
+          <label class="planning-choice"><input type="radio" name="task-urgent" value="true" ${urgent ? 'checked' : ''}><span>紧急</span></label>
+          <label class="planning-choice"><input type="radio" name="task-urgent" value="false" ${!urgent ? 'checked' : ''}><span>不紧急</span></label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">完成环境</label>
+        <div class="planning-choice-row">
+          <label class="planning-choice"><input type="radio" name="task-focus" value="true" ${focus ? 'checked' : ''}><span>需要安静专注</span></label>
+          <label class="planning-choice"><input type="radio" name="task-focus" value="false" ${!focus ? 'checked' : ''}><span>随时可以做</span></label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">重要程度</label>
+        <div class="planning-choice-row planning-importance-row">
+          ${[1, 2, 3].map(level => `
+            <label class="planning-choice importance-choice-${level}">
+              <input type="radio" name="task-importance" value="${level}" ${importance === level ? 'checked' : ''}>
+              <span>${TT.Utils.icons.star} ${['', '低', '中', '高'][level]}</span>
+            </label>
+          `).join('')}
+        </div>
+        <div class="form-hint">重要程度不会增加更多象限，只影响卡片标记与象限内排序。</div>
       </div>
     `;
+  }
+
+  function readTaskEditor() {
+    return {
+      title: document.getElementById('task-title').value.trim(),
+      date: document.getElementById('task-date').value,
+      urgent: document.querySelector('input[name="task-urgent"]:checked').value === 'true',
+      focus: document.querySelector('input[name="task-focus"]:checked').value === 'true',
+      importance: Number(document.querySelector('input[name="task-importance"]:checked').value)
+    };
+  }
+
+  function openTaskEditor(path, type, preset) {
+    const body = TT.Utils.createEl('div');
+    body.innerHTML = taskEditorContent(null, preset);
 
     TT.Utils.modal({
       title: '新建任务',
       body: body,
       confirmText: '创建',
       onConfirm: () => {
-        const title = document.getElementById('task-title').value.trim();
-        if (!title) { TT.Utils.toast('请输入任务名称', 'error'); return false; }
-        const date = document.getElementById('task-date').value;
-        TT.Store.addItem(path, { title, date, completed: false });
+        const data = readTaskEditor();
+        if (!data.title) { TT.Utils.toast('请输入任务名称', 'error'); return false; }
+        const targetPath = data.urgent ? 'tasks.daily' : 'tasks.weekly';
+        TT.Store.addItem(targetPath, { ...data, completed: false });
         TT.Utils.toast('任务已创建');
         renderGrid();
       }
@@ -390,28 +472,20 @@ TT.Planning = (function() {
     const tasks = TT.Store.getCollection(path);
     const task = tasks.find(t => t.id === id);
     if (!task) return;
+    task._path = path;
 
     const body = TT.Utils.createEl('div');
-    body.innerHTML = `
-      <div class="form-group">
-        <label class="form-label">任务名称</label>
-        <input type="text" class="form-input" id="task-title" value="${TT.Utils.escapeHtml(task.title)}" maxlength="100">
-      </div>
-      <div class="form-group">
-        <label class="form-label">截止日期</label>
-        <input type="date" class="form-input" id="task-date" value="${task.date || ''}">
-      </div>
-    `;
+    body.innerHTML = taskEditorContent(task);
 
     TT.Utils.modal({
       title: '编辑任务',
       body: body,
       confirmText: '保存',
       onConfirm: () => {
-        const title = document.getElementById('task-title').value.trim();
-        if (!title) { TT.Utils.toast('请输入任务名称', 'error'); return false; }
-        const date = document.getElementById('task-date').value;
-        TT.Store.updateItem(path, id, { title, date });
+        const data = readTaskEditor();
+        if (!data.title) { TT.Utils.toast('请输入任务名称', 'error'); return false; }
+        const targetPath = data.urgent ? 'tasks.daily' : 'tasks.weekly';
+        saveTaskToPath(path, targetPath, id, data);
         TT.Utils.toast('已保存');
         renderGrid();
       }
