@@ -154,6 +154,10 @@ function shorten(text, maxLength) {
 function titlesOverlap(a, b, width = 10) {
   const left = a.replace(/[^\u4e00-\u9fffA-Za-z0-9]/g, '');
   const right = b.replace(/[^\u4e00-\u9fffA-Za-z0-9]/g, '');
+  const modelPattern = /(Gemini|Claude|GPT|Grok|DeepSeek)[-\s]*(\d+(?:\.\d+)+)/ig;
+  const modelIds = text => [...text.matchAll(modelPattern)].map(match => `${match[1]}${match[2]}`.toLowerCase());
+  const leftModels = modelIds(a);
+  if (leftModels.some(model => modelIds(b).includes(model))) return true;
   if (left.length < width || right.length < width) return false;
   for (let index = 0; index <= left.length - width; index += 1) {
     if (right.includes(left.slice(index, index + width))) return true;
@@ -161,12 +165,28 @@ function titlesOverlap(a, b, width = 10) {
   return false;
 }
 
+const HARD_EXCLUDE_PATTERN = /概念股|ETF|股票|股价|涨停|跌超|指数|行情|收盘|基金|培训班|招生|招聘|彩票|政策|规划|行动计划|实施方案|指导意见|管理办法|条例|备案|试点|示范区|创新带|创新高地|产业园|产业集群|企业落户|大会|会议|论坛|峰会|开幕|闭幕|举办|签约|揭牌|入选|校长|寄语|新生|新同学|进课堂|课程建设|人才培养/i;
+
+function focusScore(title) {
+  const signals = [
+    /OpenAI|Anthropic|Claude|ChatGPT|Gemini|DeepSeek|Meta|Grok|英伟达|NVIDIA|微软|Google|谷歌|阿里|腾讯|字节|智谱|月之暗面|Kimi/i,
+    /发布|推出|上线|升级|更新|迭代|开源|收购|融资|降价|涨价|模型|智能体|Agent/i,
+    /宕机|故障|错误|漏洞|攻击|安全|风险|幻觉|偏见|争议|版权|诉讼|失业|替代|滥用|泄露|调查|修复/i,
+    /编程|推理|多模态|视频生成|图像生成|语音|机器人|芯片|算力|基准|评测|性能|上下文|开发者|API/i
+  ];
+  return signals.reduce((score, pattern, index) => score + (pattern.test(title) ? [2, 3, 4, 2][index] : 0), 0);
+}
+
+function isFocusedAiNews(title) {
+  return !HARD_EXCLUDE_PATTERN.test(title) && focusScore(title) >= 5;
+}
+
 function categoryFor(text) {
   if (/学生|作业|考试|教育|学习|课堂|school|student|homework|exam|education/i.test(text)) return 'education';
   if (/工作|就业|失业|岗位|职业|劳动力|job|worker|employment|workplace/i.test(text)) return 'jobs';
   if (/写作|文档|文本|书籍|版权|出版|知识|内容|writing|book|document|copyright|content|AI-blind|AI;DR|meat proxy/i.test(text)) return 'content';
   if (/漏洞|网络安全|恶意软件|cyber|vulnerability|CVE|malware/i.test(text)) return 'cyber';
-  if (/安全|风险|攻击|欺骗|监管|隐私|security|safety|risk/i.test(text)) return 'safety';
+  if (/安全|风险|攻击|欺骗|监管|隐私|宕机|故障|错误|失控|security|safety|risk|outage|failure|error/i.test(text)) return 'safety';
   if (/智能体|AI agent|agents|编程助手|coding agent|workflow/i.test(text)) return 'agent';
   if (/研究|论文|模型|训练|推理|benchmark|research|model|reasoning/i.test(text)) return 'research';
   if (/公司|融资|企业|产品|发布|收购|开源|business|launch|company|open source/i.test(text)) return 'business';
@@ -259,12 +279,14 @@ async function main() {
     } catch {}
   }
 
-  const query = '("生成式人工智能" OR "大模型" OR "AI智能体" OR OpenAI OR Anthropic OR Claude OR Gemini OR "人工智能") when:2d';
+  const query = '(OpenAI OR Anthropic OR Claude OR ChatGPT OR Gemini OR DeepSeek OR "AI模型" OR "大模型发布" OR "AI智能体" OR "AI安全" OR "AI漏洞" OR "AI宕机" OR "模型升级" OR "模型开源") when:2d';
   const endpoint = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=zh-CN&gl=CN&ceid=CN:zh-Hans`;
   const candidates = parseGoogleNewsFeed(await fetchText(endpoint))
     .filter(item => item.title && item.googleUrl && item.publishedAt)
     .filter(item => shanghaiDate(item.publishedAt) === date)
-    .filter(item => !/概念股|ETF|股票|股价|涨停|跌超|指数|行情|收盘|基金|培训班|招生|招聘|彩票/i.test(item.title));
+    .filter(item => !/东方财富/i.test(item.sourceName))
+    .filter(item => isFocusedAiNews(item.title))
+    .sort((a, b) => focusScore(b.title) - focusScore(a.title));
   const seen = new Set();
   const uniqueCandidates = candidates.filter(item => {
       const key = item.title.toLowerCase();
@@ -274,7 +296,7 @@ async function main() {
     });
 
   const items = [];
-  for (const candidate of uniqueCandidates.slice(0, 30)) {
+  for (const candidate of uniqueCandidates.slice(0, 45)) {
     if (items.length >= MAX_NEWS) break;
     if (items.some(item => titlesOverlap(item.title, candidate.title))) continue;
     try {
