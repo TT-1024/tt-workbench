@@ -1,6 +1,6 @@
 /* ============================================
    TT工作台 - AI News Module
-   昨日AI重大新闻简报
+   最新 AI 日报
    数据更新：2026-08-09 (Asia/Shanghai)
    ============================================ */
 
@@ -147,7 +147,7 @@ TT.AINews = (function() {
     container.innerHTML = `
       <div class="ainews-section glass-card slide-up">
         <div class="ainews-header">
-          <div class="ainews-header-title">${TT.Utils.icons.trending} 正在更新昨日 AI 快报…</div>
+          <div class="ainews-header-title">${TT.Utils.icons.trending} 正在更新最新 AI 日报…</div>
         </div>
       </div>
     `;
@@ -159,7 +159,7 @@ TT.AINews = (function() {
       container.innerHTML = `
         <div class="ainews-section glass-card slide-up">
           <div class="ainews-header">
-            <div class="ainews-header-title">${TT.Utils.icons.trending} 昨日 AI 快报暂时更新失败</div>
+            <div class="ainews-header-title">${TT.Utils.icons.trending} 最新 AI 日报暂时更新失败</div>
             <div class="ainews-header-date">请稍后刷新</div>
           </div>
         </div>
@@ -180,7 +180,7 @@ TT.AINews = (function() {
       <div class="ainews-section glass-card slide-up">
         <div class="ainews-header">
           <div class="ainews-header-title">
-            ${TT.Utils.icons.trending} 昨日AI快报
+            ${TT.Utils.icons.trending} 最新 AI 日报
           </div>
           <div class="ainews-header-date">${yesterdayStr()} · ${result.status === 'live' ? '已更新' : result.status === 'cached' ? '今日缓存' : '最近缓存'}</div>
         </div>
@@ -248,7 +248,7 @@ TT.AINews = (function() {
       activeNews = complete;
       return { items: complete, status: 'live' };
     } catch (error) {
-      console.warn('昨日 AI 新闻更新失败：', error);
+      console.warn('最新 AI 日报更新失败：', error);
       if (cached && Array.isArray(cached.items) && cached.items.length) {
         activeNews = cached.items;
         return { items: cached.items, status: 'stale' };
@@ -351,8 +351,8 @@ TT.AINews = (function() {
             <span>AI · ONE</span>
           </div>
           <div class="ainews-popup-header-right">
-            <span class="ainews-popup-date">昨日精选 · ${result.status === 'live' ? '刚刚更新' : result.status === 'cached' ? '今日缓存' : '最近缓存'}</span>
-            <button class="ainews-popup-close" aria-label="关闭昨日 AI 快报">${TT.Utils.icons.close}</button>
+            <span class="ainews-popup-date">最新 AI 日报 · ${result.status === 'live' ? '刚刚更新' : result.status === 'cached' ? '今日缓存' : '最近缓存'}</span>
+            <button class="ainews-popup-close" aria-label="关闭最新 AI 日报">${TT.Utils.icons.close}</button>
           </div>
         </div>
         <div class="ainews-popup-content">
@@ -510,7 +510,7 @@ TT.AINews = (function() {
     container.innerHTML = `
       <div class="ainews-bar glass-card slide-up" style="animation-delay:0.02s">
         <div class="ainews-bar-header">
-          <div class="ainews-bar-left">${TT.Utils.icons.trending}<span>正在更新昨日 AI 新闻…</span></div>
+          <div class="ainews-bar-left">${TT.Utils.icons.trending}<span>正在更新最新 AI 日报…</span></div>
         </div>
       </div>
     `;
@@ -522,7 +522,7 @@ TT.AINews = (function() {
       container.innerHTML = `
         <div class="ainews-bar glass-card slide-up">
           <div class="ainews-bar-header">
-            <div class="ainews-bar-left">${TT.Utils.icons.trending}<span>昨日 AI 新闻暂时更新失败</span></div>
+            <div class="ainews-bar-left">${TT.Utils.icons.trending}<span>最新 AI 日报暂时更新失败</span></div>
             <div class="ainews-bar-right"><span class="ainews-bar-count">请稍后刷新</span></div>
           </div>
         </div>
@@ -535,7 +535,7 @@ TT.AINews = (function() {
         <div class="ainews-bar-header">
           <div class="ainews-bar-left">
             ${TT.Utils.icons.trending}
-            <span>昨日AI快报</span>
+            <span>最新 AI 日报</span>
           </div>
           <div class="ainews-bar-right">
             <span class="ainews-bar-count">${barNews.length} 条 · ${result.status === 'live' ? '已更新' : result.status === 'cached' ? '今日缓存' : '最近缓存'}</span>
