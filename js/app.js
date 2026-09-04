@@ -41,6 +41,9 @@ TT.App = (function() {
     if (currentRoute === 'inspiration' && route !== 'inspiration') {
       if (TT.Inspiration.cleanup) TT.Inspiration.cleanup();
     }
+    if (currentRoute === 'thoughts' && route !== 'thoughts') {
+      if (TT.Thoughts.cleanup) TT.Thoughts.cleanup();
+    }
     if (currentRoute === 'conversation' && route !== 'conversation') {
       if (TT.Conversation.cleanup) TT.Conversation.cleanup();
     }
@@ -72,6 +75,9 @@ TT.App = (function() {
         break;
       case 'inspiration':
         TT.Inspiration.render(main);
+        break;
+      case 'thoughts':
+        TT.Thoughts.render(main);
         break;
       case 'conversation':
         TT.Conversation.render(main);

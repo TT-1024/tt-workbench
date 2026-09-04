@@ -1,5 +1,5 @@
 /* TT工作台 - Service Worker for offline support */
-const CACHE_NAME = 'tt-workbench-v49-latest-ai-daily';
+const CACHE_NAME = 'tt-workbench-v50-thoughts-voice';
 const ASSETS = [
   './',
   './index.html',
@@ -17,6 +17,7 @@ const ASSETS = [
   './js/food.js',
   './js/album.js',
   './js/inspiration.js',
+  './js/thoughts.js',
   './js/conversation.js',
   './assets/avatar.jpg',
   './ai-news.json',
@@ -63,6 +64,7 @@ self.addEventListener('fetch', (event) => {
     url.pathname.endsWith('/js/learning.js') ||
     url.pathname.endsWith('/js/conversation.js') ||
     url.pathname.endsWith('/js/planning.js') ||
+    url.pathname.endsWith('/js/thoughts.js') ||
     url.pathname.endsWith('/js/app.js') ||
     url.pathname.endsWith('/js/ainews.js') ||
     url.pathname.endsWith('/css/style.css');
