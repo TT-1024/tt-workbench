@@ -18,7 +18,7 @@ TT.Planning = (function() {
 
   function render(container) {
     container.innerHTML = `
-      <div class="page-container">
+      <div class="page-container planning-page">
         <div class="page-header">
           <div class="page-title-group">
             <h1>计划</h1>

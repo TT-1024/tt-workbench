@@ -1,5 +1,5 @@
 /* TT工作台 - Service Worker for offline support */
-const CACHE_NAME = 'tt-workbench-v46-voice-input';
+const CACHE_NAME = 'tt-workbench-v47-floating-voice';
 const ASSETS = [
   './',
   './index.html',
