@@ -7,6 +7,8 @@ window.TT = window.TT || {};
 
 TT.Planning = (function() {
   const COMPLETED_TASK_RETENTION_MS = 3 * 24 * 60 * 60 * 1000;
+  let voiceRecognition = null;
+  let isVoiceListening = false;
   const QUADRANTS = [
     { id: 'urgent-focus', urgent: true, focus: true, title: '紧急 · 需要专注', subtitle: '现在优先，留出安静时间', tone: 'red' },
     { id: 'calm-focus', urgent: false, focus: true, title: '不紧急 · 需要专注', subtitle: '重要推进，安排深度时间', tone: 'purple' },
@@ -24,11 +26,115 @@ TT.Planning = (function() {
           </div>
           <button class="btn btn-primary planning-new-task-btn" id="planning-new-task-btn">${TT.Utils.icons.plus} 新建任务</button>
         </div>
+        <div class="planning-quick-capture">
+          <button class="planning-voice-btn" id="planning-voice-btn" type="button" aria-label="开始语音输入" aria-pressed="false">${TT.Utils.icons.mic}</button>
+          <input class="planning-quick-input" id="planning-quick-input" type="text" placeholder="说出或输入一项任务…" maxlength="100" autocomplete="off" inputmode="text" x-webkit-speech speech>
+          <button class="planning-send-btn" id="planning-send-btn" type="button" aria-label="添加任务">${TT.Utils.icons.arrowUp}</button>
+          <div class="planning-voice-status" id="planning-voice-status">快速记录默认进入「紧急 · 随时可做」</div>
+        </div>
         <div class="planning-board" id="planning-board"></div>
         <div class="planning-support-grid" id="planning-support-grid"></div>
       </div>
     `;
     renderGrid();
+    setupQuickCapture();
+  }
+
+  function setupQuickCapture() {
+    const input = document.getElementById('planning-quick-input');
+    const sendButton = document.getElementById('planning-send-btn');
+    const voiceButton = document.getElementById('planning-voice-btn');
+
+    sendButton.onclick = addQuickTask;
+    input.onkeydown = event => {
+      if (event.key === 'Enter' && !event.isComposing) addQuickTask();
+    };
+    voiceButton.onclick = toggleVoiceInput;
+  }
+
+  function addQuickTask() {
+    const input = document.getElementById('planning-quick-input');
+    const title = input.value.trim();
+    if (!title) {
+      TT.Utils.toast('请先说出或输入任务', 'error');
+      input.focus();
+      return;
+    }
+
+    TT.Store.addItem('tasks.daily', {
+      title,
+      date: '',
+      urgent: true,
+      focus: false,
+      importance: 2,
+      completed: false
+    });
+    input.value = '';
+    TT.Utils.toast('任务已加入「紧急 · 随时可做」');
+    renderGrid();
+    input.focus();
+  }
+
+  function toggleVoiceInput() {
+    if (isVoiceListening && voiceRecognition) {
+      voiceRecognition.stop();
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      TT.Utils.toast('当前浏览器暂不支持语音转文字，请使用系统键盘的麦克风', 'error');
+      const input = document.getElementById('planning-quick-input');
+      if (input) input.focus();
+      return;
+    }
+
+    voiceRecognition = new SpeechRecognition();
+    voiceRecognition.lang = 'zh-CN';
+    voiceRecognition.continuous = false;
+    voiceRecognition.interimResults = true;
+
+    voiceRecognition.onstart = () => setVoiceListeningState(true, '正在听，请说出任务…');
+    voiceRecognition.onresult = event => {
+      let transcript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      const input = document.getElementById('planning-quick-input');
+      if (input) input.value = transcript.trim();
+    };
+    voiceRecognition.onerror = event => {
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        TT.Utils.toast('请允许麦克风权限后再试', 'error');
+      } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
+        TT.Utils.toast('没有识别成功，请再说一次', 'error');
+      }
+    };
+    voiceRecognition.onend = () => {
+      setVoiceListeningState(false, '识别完成，可修改后发送');
+      voiceRecognition = null;
+    };
+
+    try {
+      voiceRecognition.start();
+    } catch (error) {
+      voiceRecognition = null;
+      setVoiceListeningState(false);
+      TT.Utils.toast('语音输入暂时无法启动，请稍后再试', 'error');
+    }
+  }
+
+  function setVoiceListeningState(listening, message) {
+    isVoiceListening = listening;
+    const button = document.getElementById('planning-voice-btn');
+    const status = document.getElementById('planning-voice-status');
+    if (!button || !status) return;
+
+    button.classList.toggle('listening', listening);
+    button.setAttribute('aria-pressed', String(listening));
+    button.setAttribute('aria-label', listening ? '停止语音输入' : '开始语音输入');
+    status.textContent = message || '快速记录默认进入「紧急 · 随时可做」';
+    status.classList.toggle('listening', listening);
   }
 
   function renderGrid() {

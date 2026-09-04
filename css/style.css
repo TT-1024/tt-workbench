@@ -1917,6 +1917,78 @@ body {
 }
 
 /* ===== Planning Module - Freeform Quadrant Board ===== */
+.planning-quick-capture {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px 9px 7px;
+  border: 1px solid rgba(255,255,255,.55);
+  border-radius: 22px;
+  background: rgba(255,255,255,.54);
+  box-shadow: 0 10px 30px rgba(42,54,89,.07), inset 0 1px 0 rgba(255,255,255,.78);
+  backdrop-filter: blur(28px) saturate(160%);
+}
+.planning-voice-btn,
+.planning-send-btn {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform var(--transition-fast), color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
+}
+.planning-voice-btn {
+  color: var(--text-secondary);
+  background: rgba(255,255,255,.66);
+  box-shadow: inset 0 0 0 1px rgba(71,76,109,.08);
+}
+.planning-voice-btn:hover { color: var(--accent-blue); background: var(--cat-blue-bg); }
+.planning-voice-btn.listening {
+  color: #fff;
+  background: var(--accent-red);
+  box-shadow: 0 0 0 6px rgba(255,69,58,.12);
+  animation: voice-pulse 1.25s ease-in-out infinite;
+}
+.planning-send-btn {
+  color: #fff;
+  background: linear-gradient(145deg, var(--accent-blue), var(--accent-indigo));
+  box-shadow: 0 6px 16px rgba(10,132,255,.25);
+}
+.planning-send-btn:hover { transform: scale(1.05); }
+.planning-voice-btn svg,
+.planning-send-btn svg { width: 18px; height: 18px; }
+.planning-quick-input {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 0 5px;
+  border: 0;
+  outline: 0;
+  color: var(--text-primary);
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+}
+.planning-quick-input::placeholder { color: var(--text-tertiary); }
+.planning-voice-status {
+  grid-column: 2 / 4;
+  margin: -2px 4px 1px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  line-height: 1.35;
+}
+.planning-voice-status.listening { color: var(--accent-red); font-weight: 650; }
+@keyframes voice-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
 .planning-board {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -4004,6 +4076,10 @@ body {
 }
 
 @media (max-width: 768px) {
+  .planning-quick-capture { position: sticky; top: 8px; z-index: 20; margin-bottom: 13px; }
+  .planning-voice-btn,
+  .planning-send-btn { width: 44px; height: 44px; }
+  .planning-quick-capture { grid-template-columns: 44px minmax(0, 1fr) 44px; }
   .planning-board,
   .planning-support-grid { grid-template-columns: 1fr; }
   .planning-board { padding: 12px; border-radius: 24px; }
