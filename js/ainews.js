@@ -191,11 +191,11 @@ TT.AINews = (function() {
     `;
 
     container.querySelectorAll('.ainews-card').forEach(card => {
-      card.onclick = () => openDetail(card.dataset.id);
+      card.onclick = () => showDailyPopup(card.dataset.id);
     });
   }
 
-  // ===== ONE-style news deck (shown whenever the workbench is opened) =====
+  // ===== ONE-style news deck (opened only after the user selects a story) =====
   const NEWS_CACHE_KEY = 'tt_ainews_yesterday_cache_v3';
   let activeNews = [];
   let newsLoadPromise = null;
@@ -267,14 +267,15 @@ TT.AINews = (function() {
     return newsLoadPromise;
   }
 
-  async function showDailyPopup() {
+  async function showDailyPopup(initialId) {
     if (document.querySelector('.ainews-popup-overlay')) return;
 
     const result = await loadYesterdayNews();
     const popupNews = result.items;
     if (!popupNews.length) return;
 
-    let currentIndex = 0;
+    const selectedIndex = popupNews.findIndex(item => item.id === initialId);
+    let currentIndex = selectedIndex >= 0 ? selectedIndex : 0;
     let overlayEl = null;
 
     function renderCard(index) {
@@ -504,7 +505,7 @@ TT.AINews = (function() {
     });
   }
 
-  // ===== Collapsible Bar (always visible on dashboard) =====
+  // ===== Dedicated news area (always visible on dashboard) =====
   async function renderCollapsibleBar(container) {
     container.innerHTML = `
       <div class="ainews-bar glass-card slide-up" style="animation-delay:0.02s">
@@ -531,56 +532,31 @@ TT.AINews = (function() {
 
     container.innerHTML = `
       <div class="ainews-bar glass-card slide-up" style="animation-delay:0.02s">
-        <div class="ainews-bar-header" id="ainews-bar-toggle">
+        <div class="ainews-bar-header">
           <div class="ainews-bar-left">
             ${TT.Utils.icons.trending}
             <span>昨日AI快报</span>
           </div>
           <div class="ainews-bar-right">
             <span class="ainews-bar-count">${barNews.length} 条 · ${result.status === 'live' ? '已更新' : result.status === 'cached' ? '今日缓存' : '最近缓存'}</span>
-            <span class="ainews-bar-arrow" id="ainews-bar-arrow">${TT.Utils.icons.chevronDown}</span>
           </div>
         </div>
-        <div class="ainews-bar-list" id="ainews-bar-list">
+        <div class="ainews-bar-list expanded" id="ainews-bar-list">
           ${barNews.map((item, i) => `
-            <div class="ainews-bar-item" data-id="${TT.Utils.escapeHtml(item.id)}" style="animation-delay:${0.03 + i * 0.04}s">
+            <button type="button" class="ainews-bar-item" data-id="${TT.Utils.escapeHtml(item.id)}" style="animation-delay:${0.03 + i * 0.04}s" aria-label="查看新闻详情：${TT.Utils.escapeHtml(item.title)}">
               <div class="ainews-bar-item-time">${TT.Utils.escapeHtml(item.time)}</div>
               <div class="ainews-bar-item-title">${TT.Utils.escapeHtml(item.title)}</div>
               <div class="ainews-bar-item-oneline">${TT.Utils.escapeHtml(item.overview)}</div>
               <div class="ainews-bar-item-arrow">${TT.Utils.icons.chevronRight}</div>
-            </div>
+            </button>
           `).join('')}
         </div>
       </div>
     `;
 
-    const list = container.querySelector('#ainews-bar-list');
-    const arrow = container.querySelector('#ainews-bar-arrow');
-    const toggle = container.querySelector('#ainews-bar-toggle');
-
-    // Start collapsed
-    list.style.maxHeight = '0';
-    list.style.opacity = '0';
-    arrow.style.transform = 'rotate(0deg)';
-
-    toggle.onclick = () => {
-      const isExpanded = list.classList.contains('expanded');
-      if (isExpanded) {
-        list.classList.remove('expanded');
-        list.style.maxHeight = '0';
-        list.style.opacity = '0';
-        arrow.style.transform = 'rotate(0deg)';
-      } else {
-        list.classList.add('expanded');
-        list.style.maxHeight = list.scrollHeight + 'px';
-        list.style.opacity = '1';
-        arrow.style.transform = 'rotate(180deg)';
-      }
-    };
-
-    // Click news item to open detail
+    // Open the swipeable detail deck at the selected story.
     container.querySelectorAll('.ainews-bar-item').forEach(item => {
-      item.onclick = () => openDetail(item.dataset.id);
+      item.onclick = () => showDailyPopup(item.dataset.id);
     });
   }
 

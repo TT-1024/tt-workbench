@@ -551,11 +551,6 @@ TT.Dashboard = (function() {
       TT.AINews.renderCollapsibleBar(newsBarContainer);
     }
 
-    // Show daily AI news popup on first visit each day
-    if (TT.AINews && TT.AINews.showDailyPopup) {
-      setTimeout(() => TT.AINews.showDailyPopup(), 600);
-    }
-
     // Hot Corner - macOS-style trigger zone
     setupHotCorner();
   }
