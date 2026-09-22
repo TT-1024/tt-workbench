@@ -44,6 +44,9 @@ TT.App = (function() {
     if (currentRoute === 'thoughts' && route !== 'thoughts') {
       if (TT.Thoughts.cleanup) TT.Thoughts.cleanup();
     }
+    if (currentRoute === 'bci' && route !== 'bci') {
+      if (TT.BCI.cleanup) TT.BCI.cleanup();
+    }
     if (currentRoute === 'conversation' && route !== 'conversation') {
       if (TT.Conversation.cleanup) TT.Conversation.cleanup();
     }
@@ -78,6 +81,9 @@ TT.App = (function() {
         break;
       case 'thoughts':
         TT.Thoughts.render(main);
+        break;
+      case 'bci':
+        TT.BCI.render(main);
         break;
       case 'conversation':
         TT.Conversation.render(main);

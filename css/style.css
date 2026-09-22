@@ -3810,6 +3810,39 @@ body {
 .thoughts-modal-kind { width: 100%; }
 .thoughts-modal-kind .thoughts-kind-btn { flex: 1; }
 
+/* ===== BCI Module ===== */
+.bci-capture {
+  background:
+    radial-gradient(circle at 9% 0%, rgba(90, 200, 250, .15), transparent 38%),
+    radial-gradient(circle at 94% 100%, rgba(88, 86, 214, .13), transparent 36%),
+    rgba(248, 250, 255, .74);
+}
+.bci-kind-switch { max-width: 100%; }
+.bci-kind-switch .thoughts-kind-btn { white-space: nowrap; }
+.bci-kind-switch .thoughts-kind-btn:hover,
+.bci-kind-switch .thoughts-kind-btn.active { color: var(--accent-indigo); }
+.bci-send-btn {
+  background: linear-gradient(145deg, var(--accent-blue), var(--accent-indigo));
+  box-shadow: 0 6px 16px rgba(65, 105, 225, .24);
+}
+.bci-filter {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.bci-filter::-webkit-scrollbar { display: none; }
+.bci-filter .thoughts-filter-btn { flex: 0 0 auto; white-space: nowrap; }
+.bci-card::before { background: var(--accent-blue); }
+.bci-card .thought-kind-badge { color: var(--accent-blue); background: var(--cat-blue-bg); }
+.bci-card-development::before { background: var(--accent-green); }
+.bci-card-development .thought-kind-badge { color: var(--accent-green); background: var(--cat-green-bg); }
+.bci-card-industry::before { background: var(--accent-orange); }
+.bci-card-industry .thought-kind-badge { color: var(--accent-orange); background: var(--cat-orange-bg); }
+.bci-card-question::before { background: var(--accent-purple); }
+.bci-card-question .thought-kind-badge { color: var(--accent-purple); background: var(--cat-purple-bg); }
+.bci-empty .empty-state-icon { color: var(--accent-blue); }
+.bci-empty .empty-state-icon svg { width: 34px; height: 34px; }
+
 /* ===== Custom Module (generic notes) ===== */
 .custom-module-content {
   display: grid;
@@ -4421,6 +4454,13 @@ body {
   .thoughts-voice-status { margin-left: 4px; }
   .thoughts-filter { width: 100%; }
   .thoughts-filter-btn { flex: 1; }
+  .bci-kind-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .bci-kind-switch .thoughts-kind-btn { width: 100%; }
+  .bci-filter { width: 100%; }
+  .bci-filter .thoughts-filter-btn { flex: 0 0 auto; }
   .thought-card { min-height: 132px; padding: 16px 50px 16px 17px; }
   .inspiration-board-shell { min-height: calc(100vh - 310px); }
   .inspiration-board { min-height: calc(100vh - 310px); }

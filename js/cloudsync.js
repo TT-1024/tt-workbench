@@ -68,7 +68,7 @@ TT.CloudSync = (function() {
       len(data.learning && data.learning.baoyan) +
       len(data.learning && data.learning.chuguo) +
       len(data.learning && data.learning.keyan) +
-      len(data.podcasts) + len(data.album) + len(data.inspirations) +
+      len(data.podcasts) + len(data.album) + len(data.inspirations) + len(data.bci) +
       len(data.conversations) + len(data.food && data.food.milktea) +
       len(data.food && data.food.finedining) + objectArrays(data.customModules) +
       objectArrays(data.notes);

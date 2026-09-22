@@ -23,7 +23,8 @@ TT.Store = (function() {
         { id: 'album', name: '相册', icon: 'image', order: 5, locked: true },
         { id: 'inspiration', name: '灵感', icon: 'lightbulb', order: 6, locked: true },
         { id: 'thoughts', name: '闪念', icon: 'sparkles', order: 7, locked: true },
-        { id: 'conversation', name: '谈话记录', icon: 'chat', order: 8, locked: true }
+        { id: 'conversation', name: '谈话记录', icon: 'chat', order: 8, locked: true },
+        { id: 'bci', name: 'BCI', icon: 'brain', order: 9, locked: true }
       ]
     },
     tasks: {
@@ -44,6 +45,7 @@ TT.Store = (function() {
     album: [],
     inspirations: [],
     thoughts: [],
+    bci: [],
     conversations: [],
     food: {
       milktea: [],
