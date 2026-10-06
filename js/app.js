@@ -586,9 +586,14 @@ TT.Dashboard = (function() {
     hotCornerHint = document.createElement('div');
     hotCornerHint.className = 'hot-corner-hint intro';
     hotCornerHint.innerHTML =
-      '<div class="hot-corner-icon">' + TT.Utils.icons.lightbulb + '</div>' +
-      '<div class="hot-corner-label">滑动记录灵感</div>';
+      '<div class="hot-corner-icon">' + TT.Utils.icons.sparkles + '</div>' +
+      '<div class="hot-corner-label">轻碰记录闪念</div>';
     document.body.appendChild(hotCornerHint);
+
+    function openThoughtEditor() {
+      if (document.querySelector('.modal-overlay')) return;
+      TT.Thoughts.editItem();
+    }
 
     // Remove intro class after animation
     setTimeout(() => {
@@ -620,13 +625,15 @@ TT.Dashboard = (function() {
         triggered = true;
         inCornerZone = false;
         if (hotCornerHint) hotCornerHint.classList.remove('active');
-        TT.Inspiration.editItem();
+        openThoughtEditor();
       }
     }
 
     function onTouchEnd() {
+      const shouldOpenEditor = inCornerZone && !triggered;
       inCornerZone = false;
       if (hotCornerHint) hotCornerHint.classList.remove('active');
+      if (shouldOpenEditor) openThoughtEditor();
     }
 
     main.addEventListener('touchstart', onTouchStart, { passive: true });
@@ -649,7 +656,7 @@ TT.Dashboard = (function() {
         if (!mouseTimer) {
           if (hotCornerHint) hotCornerHint.classList.add('active');
           mouseTimer = setTimeout(() => {
-            TT.Inspiration.editItem();
+            openThoughtEditor();
             mouseTimer = null;
           }, HOVER_DELAY);
         }

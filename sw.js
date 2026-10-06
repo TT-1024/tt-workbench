@@ -1,5 +1,5 @@
 /* TT工作台 - Service Worker for offline support */
-const CACHE_NAME = 'tt-workbench-v51-bci';
+const CACHE_NAME = 'tt-workbench-v52-thoughts-hot-corner';
 const ASSETS = [
   './',
   './index.html',

@@ -334,5 +334,9 @@ TT.Thoughts = (function() {
     isVoiceListening = false;
   }
 
-  return { render, cleanup };
+  return {
+    render,
+    editItem: (id) => openEditor(id),
+    cleanup
+  };
 })();
