@@ -6,7 +6,7 @@ window.TT = window.TT || {};
 
 TT.Thoughts = (function() {
   let searchQuery = '';
-  let currentFilter = 'all';
+  let currentFilter = 'insight';
   let captureKind = 'insight';
   let voiceRecognition = null;
   let isVoiceListening = false;
@@ -45,7 +45,6 @@ TT.Thoughts = (function() {
             <input type="text" id="thoughts-search" placeholder="搜索闪念...">
           </div>
           <div class="thoughts-filter" role="group" aria-label="筛选闪念">
-            <button class="thoughts-filter-btn ${currentFilter === 'all' ? 'active' : ''}" data-filter="all">全部</button>
             <button class="thoughts-filter-btn ${currentFilter === 'insight' ? 'active' : ''}" data-filter="insight">感悟</button>
             <button class="thoughts-filter-btn ${currentFilter === 'question' ? 'active' : ''}" data-filter="question">疑问</button>
           </div>
@@ -205,7 +204,7 @@ TT.Thoughts = (function() {
 
   function getVisibleItems() {
     let items = TT.Store.getCollection('thoughts').slice();
-    if (currentFilter !== 'all') items = items.filter(item => item.kind === currentFilter);
+    items = items.filter(item => (item.kind || 'insight') === currentFilter);
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       items = items.filter(item => (item.content || '').toLowerCase().includes(query));
@@ -219,12 +218,13 @@ TT.Thoughts = (function() {
     const items = getVisibleItems();
 
     if (!items.length) {
-      const filtered = currentFilter !== 'all' || searchQuery;
+      const isSearching = Boolean(searchQuery);
+      const kindLabel = KINDS[currentFilter].label;
       list.innerHTML = `
         <div class="thoughts-empty">
           <div class="empty-state-icon">${TT.Utils.icons.sparkles}</div>
-          <div class="thoughts-empty-title">${filtered ? '没有找到匹配的闪念' : '还没有闪念'}</div>
-          <div class="empty-state-text">${filtered ? '试试其他关键词或切换类型' : '冒出想法时，说一句就能记下来'}</div>
+          <div class="thoughts-empty-title">${isSearching ? '没有找到匹配的闪念' : `还没有${kindLabel}记录`}</div>
+          <div class="empty-state-text">${isSearching ? '试试其他关键词' : '冒出想法时，说一句就能记下来'}</div>
         </div>
       `;
       return;
